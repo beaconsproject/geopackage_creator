@@ -23,6 +23,7 @@ ui = dashboardPage(skin="blue",
             hr(),
             menuItem("2. Create geopackage", tabName = "data", icon = icon("th")),
             actionButton("goButton", "Create geopackage"),
+            numericInput("minYear", label = "Oldest fires to include:", value = 1980),
             hr(),
             menuItem("3. Download geopackage", tabName = "download", icon = icon("th")),
             div(style="position:relative; left:calc(6%);", downloadButton("downloadData", "Download geopackage")),
@@ -79,6 +80,7 @@ server = function(input, output, session) {
         x=vect(bp, 'fires') %>%
           st_as_sf() %>%
           st_cast('MULTIPOLYGON') %>%
+          filter(YEAR > input$minYear) %>%
           st_intersection(aoi) %>%
           st_cast('MULTIPOLYGON')
     }
@@ -179,7 +181,7 @@ server = function(input, output, session) {
   # Save features to a geopackage
   ##############################################################################
   output$downloadData <- downloadHandler(
-    filename = function() { paste("disturbance_explorer-", Sys.Date(), ".gpkg", sep="") },
+    filename = function() { paste("disturbances-", Sys.Date(), ".gpkg", sep="") },
     content = function(file) {
         st_write(bnd(), dsn=file, layer='fda')
         if (input$goButton) {
@@ -192,9 +194,9 @@ server = function(input, output, session) {
     }
   )
 
-  session$onSessionEnded(function() {
-    stopApp()
-  })
+  #session$onSessionEnded(function() {
+  #  stopApp()
+  #})
 
 }
 shinyApp(ui, server)
