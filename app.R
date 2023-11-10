@@ -23,7 +23,8 @@ ui = dashboardPage(skin="blue",
             hr(),
             menuItem("2. Create geopackage", tabName = "data", icon = icon("th")),
             actionButton("goButton", "Create geopackage"),
-            numericInput("minYear", label = "Oldest fires to include:", value = 1980),
+            #numericInput("minYear", label = "Oldest fires to include:", value = 1980),
+            sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2000)),
             hr(),
             menuItem("3. Download geopackage", tabName = "download", icon = icon("th")),
             div(style="position:relative; left:calc(6%);", downloadButton("downloadData", "Download geopackage")),
@@ -80,7 +81,7 @@ server = function(input, output, session) {
         x=vect(bp, 'fires') %>%
           st_as_sf() %>%
           st_cast('MULTIPOLYGON') %>%
-          filter(YEAR > input$minYear) %>%
+          filter(YEAR >= input$minmax[1] & YEAR <= input$minmax[2]) %>%
           st_intersection(aoi) %>%
           st_cast('MULTIPOLYGON')
     }
