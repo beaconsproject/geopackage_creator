@@ -1,2 +1,4 @@
 rsconnect
-www/bp_datasets.gpkg
+bp_datasets.gpkg
+projected.gpkg
+species.gpkg

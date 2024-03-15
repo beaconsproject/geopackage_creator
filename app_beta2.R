@@ -6,12 +6,12 @@ library(shinydashboard)
 library(shinycssloaders)
 library(shinyjs)
 library(markdown)
+library(lubridate)
 
 options(shiny.maxRequestSize=100*1024^2) 
 bp <- 'www/bp_datasets.gpkg'
 spp <- 'www/species.gpkg'
 prj <- 'www/projected.gpkg'
-#bp <- 'H:/Shared drives/Data/bp_datasets.gpkg'
 limits <- st_read(bp, 'bnd') %>% st_transform(4326)
 
 ui = dashboardPage(skin="blue",
@@ -19,7 +19,6 @@ ui = dashboardPage(skin="blue",
     dashboardSidebar(
         sidebarMenu(id="tabs",
             menuItem("Overview", tabName = "overview", icon = icon("th")),
-            #menuItem("Explorer", tabName = "explorer", icon = icon("th"),
             menuItem("Select study area", tabName = "select", icon = icon("arrow-pointer")),
             menuItem("Create geopackage", tabName = "data", icon = icon("arrow-pointer")),
             menuItem("Download data", tabName = "download", icon = icon("th")),
@@ -31,8 +30,9 @@ ui = dashboardPage(skin="blue",
         ),
          conditionalPanel(
            condition = "input.tabs == 'data'",
-            actionButton("goButton", "Create geopackage"),
-            sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020))
+            #textInput("expiry", label="Expiry date for claims:", value="2024-03-11"),
+            sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020)),
+            actionButton("goButton", "Create geopackage")
          ),
         conditionalPanel(
             condition="input.tabs=='download'",
@@ -46,7 +46,6 @@ ui = dashboardPage(skin="blue",
     tabItems(
       tabItem(tabName="overview",
             fluidRow(
-                #box(title = "Mapview", leafletOutput("map1", height=750) %>% withSpinner(), width=12),
                 tabBox(id = "one", width="12",
                     tabPanel("Overview", includeMarkdown("www/overview.md")),
                     tabPanel("Datasets", includeMarkdown("www/datasets.md"))
@@ -55,9 +54,9 @@ ui = dashboardPage(skin="blue",
         ),
       tabItem(tabName="select",
             fluidRow(
-                #box(title = "Mapview", leafletOutput("map1", height=750) %>% withSpinner(), width=12),
                 tabBox(id = "one", width="8",
-                    tabPanel("Mapview", leafletOutput("map1") %>% withSpinner())
+                    tabPanel("Mapview", leafletOutput("map1") %>% withSpinner()),
+                    tabPanel("Output layers", leafletOutput("map2", height=780) %>% withSpinner())
                 ),
                 tabBox(
                     id = "two", width="4",
@@ -149,6 +148,9 @@ server = function(input, output, session) {
     if (input$goButton & input$prj1) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
         st_read(prj, 'Quartz Claims') %>%
+          #filter(TENURE_STATUS=='Active') %>%
+          #mutate(date=ymd_hms(EXPIRY_DATE)) %>%
+          #filter(date >= input$expiry) %>%
           st_intersection(aoi)
     } else {
       x <- st_read(prj, 'Quartz Claims') %>% st_transform(4326) %>%
@@ -160,6 +162,9 @@ server = function(input, output, session) {
     if (input$goButton & input$prj2) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
         st_read(prj, 'Placer Claims') %>%
+          #filter(TENURE_STATUS=='Active') %>%
+          #mutate(date=ymd_hms(EXPIRY_DATE)) %>%
+          #filter(date >= input$expiry) %>%
           st_intersection(aoi)
     } else {
       x <- st_read(prj, 'Placer Claims') %>% st_transform(4326)
@@ -245,65 +250,60 @@ server = function(input, output, session) {
   ##############################################################################
   # Update map with clipped maps
   ##############################################################################
-  genGpkg <- eventReactive(input$goButton,{
-  #observe({
-   # if (input$goButton) {
-      aoi <- bnd() %>% st_transform(3578)
-      sd_line <- line() %>% st_transform(4326)
-      sd_poly <- poly() %>% st_transform(4326)
-      fires <- fires() %>%  st_transform(4326)
-      ifl_2000 <- ifl_2000() %>% st_transform(4326)
-      ifl_2020 <- ifl_2020() %>% st_transform(4326)
-      pa_2021 <- pa_2021() %>% st_transform(4326)
-      
-      proxy <- leafletProxy("map1") %>%
+  output$map2 <- renderLeaflet({
+    req(input$goButton > 0)
+    sd_line <- line() %>% st_transform(4326)
+    sd_poly <- poly() %>% st_transform(4326)
+    fires <- fires() %>%  st_transform(4326)
+    ifl_2000 <- ifl_2000() %>% st_transform(4326)
+    ifl_2020 <- ifl_2020() %>% st_transform(4326)
+    pa_2021 <- pa_2021() %>% st_transform(4326)
+    region <- bnd() %>% st_transform(4326)
+    map_bounds <- region %>% st_bbox() %>% as.character()
+    m <- leaflet(region, options = leafletOptions(attributionControl=FALSE)) %>%
+      fitBounds(map_bounds[1], map_bounds[2], map_bounds[3], map_bounds[4]) %>%
+      addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
+      addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") %>%
+      addPolygons(data=region, color='blue', fill=F, weight=2, group="Study area") %>%
       addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") %>%
       addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") %>%
       addPolygons(data=fires,fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') %>%
       addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intactness 2000") %>%
       addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intactness 2020") %>%
-      addPolygons(data=pa_2021, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Protected areas") #%>%
-
+      addPolygons(data=pa_2021, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Protected areas")
       grps <- NULL
       if (input$prj1 & dim(prj1())[1]>0) { 
         prj1 <- prj1() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
+        m <- m %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
         grps <- c(grps,"Quartz Claims")
       }
       if (input$prj2 & dim(prj2())[1]>0) { 
         prj2 <- prj2() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer Claims")
+        m <- m %>% addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer Claims")
         grps <- c(grps,"Placer Claims")
       }
       if (input$spp1 & dim(spp1())[1]>0) { 
         spp1 <- spp1() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
+        m <- m %>% addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
         grps <- c(grps,"Caribou Herds")
       }
       if (input$spp2 & dim(spp2())[1]>0) { 
         spp2 <- spp2() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=spp2, color='red', fill=T, weight=1, group="Thinhorn Sheep")
+        m <- m %>% addPolygons(data=spp2, color='red', fill=T, weight=1, group="Thinhorn Sheep")
         grps <- c(grps,"Thinhorn Sheep")
       }
       if (input$spp3 & dim(spp3())[1]>0) { 
         spp3 <- spp3() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=spp3, color='red', fill=T, weight=1, group="Key Wetlands 2011")
+        m <- m %>% addPolygons(data=spp3, color='red', fill=T, weight=1, group="Key Wetlands 2011")
         grps <- c(grps,"Key Wetlands 2011")
       }
-
-      proxy <- proxy %>% #addLayersControl(position = "topright",
+      m <- m %>% #addLayersControl(position = "topright",
       addLayersControl(position = "topright",
         baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
-        overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intactness 2000", "Intactness 2020", "Protected areas", grps),
+        overlayGroups = c("Study area", "Linear disturbances", "Areal disturbances", "Fires","Intactness 2000", "Intactness 2020", "Protected areas", grps),
         options = layersControlOptions(collapsed = FALSE)) %>%
-      hideGroup(c("Database limits", "Intactness 2000", "Intactness 2020", "Protected areas", grps))
-    #}
-  })
-
-  observe({
-    if (input$goButton) {
-      genGpkg()
-    }
+      hideGroup(c("Intactness 2000", "Intactness 2020", "Protected areas", grps))
+      m
   })
 
   ##############################################################################
