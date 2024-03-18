@@ -6,12 +6,12 @@ library(shinydashboard)
 library(shinycssloaders)
 library(shinyjs)
 library(markdown)
-library(lubridate)
 
 options(shiny.maxRequestSize=100*1024^2) 
 bp <- 'www/bp_datasets.gpkg'
 spp <- 'www/species.gpkg'
 prj <- 'www/projected.gpkg'
+#bp <- 'H:/Shared drives/Data/bp_datasets.gpkg'
 limits <- st_read(bp, 'bnd') %>% st_transform(4326)
 
 ui = dashboardPage(skin="blue",
@@ -31,9 +31,8 @@ ui = dashboardPage(skin="blue",
         ),
          conditionalPanel(
            condition = "input.tabs == 'data'",
-            #textInput("expiry", label="Expiry date for claims:", value="2024-03-11"),
-            sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020)),
-            actionButton("goButton", "Create geopackage")
+            actionButton("goButton", "Create geopackage"),
+            sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020))
          ),
         conditionalPanel(
             condition="input.tabs=='download'",
@@ -150,9 +149,6 @@ server = function(input, output, session) {
     if (input$goButton & input$prj1) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
         st_read(prj, 'Quartz Claims') %>%
-          filter(TENURE_STATUS=='Active') %>%
-          #mutate(date=ymd_hms(EXPIRY_DATE)) %>%
-          #filter(date >= input$expiry) %>%
           st_intersection(aoi)
     } else {
       x <- st_read(prj, 'Quartz Claims') %>% st_transform(4326) %>%
@@ -164,9 +160,6 @@ server = function(input, output, session) {
     if (input$goButton & input$prj2) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
         st_read(prj, 'Placer Claims') %>%
-          filter(TENURE_STATUS=='Active') %>%
-          #mutate(date=ymd_hms(EXPIRY_DATE)) %>%
-          #filter(date >= input$expiry) %>%
           st_intersection(aoi)
     } else {
       x <- st_read(prj, 'Placer Claims') %>% st_transform(4326)
@@ -234,7 +227,7 @@ server = function(input, output, session) {
       } else {
         region <- bnd() %>% st_transform(4326)
         map_bounds <- region %>% st_bbox() %>% as.character()
-        m <- leaflet(region) %>%
+        m <- leaflet(region, options = leafletOptions(attributionControl=FALSE)) %>%
           fitBounds(map_bounds[1], map_bounds[2], map_bounds[3], map_bounds[4]) %>%
           addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
           addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") %>%
