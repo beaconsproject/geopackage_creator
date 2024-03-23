@@ -258,7 +258,6 @@ server = function(input, output, session) {
         tspp3 <- isolate(input$spp3)
         
         if (tprj1 & length(prj1())>0) { 
-          browser()
           prj1 <- prj1() %>% st_transform(4326)
           m <- m %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
           grps <- c(grps,"Quartz Claims")
