@@ -299,7 +299,6 @@ server = function(input, output, session) {
   output$downloadData <- downloadHandler(
     filename = function() { paste("disturbances-", Sys.Date(), ".gpkg", sep="") },
     content = function(file) {
-      browser()
         showModal(modalDialog("Downloading...", footer=NULL))
         on.exit(removeModal())
         st_write(bnd(), dsn=file, layer='studyarea')
