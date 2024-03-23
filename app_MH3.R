@@ -299,6 +299,7 @@ server = function(input, output, session) {
   output$downloadData <- downloadHandler(
     filename = function() { paste("disturbances-", Sys.Date(), ".gpkg", sep="") },
     content = function(file) {
+      browser()
         showModal(modalDialog("Downloading...", footer=NULL))
         on.exit(removeModal())
         st_write(bnd(), dsn=file, layer='studyarea')
@@ -309,11 +310,11 @@ server = function(input, output, session) {
           st_write(ifl_2000(), dsn=file, layer='ifl_2000', append=TRUE)
           st_write(ifl_2020(), dsn=file, layer='ifl_2020', append=TRUE)
           st_write(pa_2021(), dsn=file, layer='protected_areas', append=TRUE)
-          if (input$prj1 & dim(prj1())[1]>0) st_write(prj1(), dsn=file, layer='Quartz Claims', append=TRUE)
-          if (input$prj2 & dim(prj2())[1]>0) st_write(prj2(), dsn=file, layer='Placer Claims', append=TRUE)
-          if (input$spp1 & dim(spp1())[1]>0) st_write(spp1(), dsn=file, layer='Caribou Herds', append=TRUE)
-          if (input$spp2 & dim(spp2())[1]>0) st_write(spp2(), dsn=file, layer='Thinhorn Sheep', append=TRUE)
-          if (input$spp3 & dim(spp3())[1]>0) st_write(spp3(), dsn=file, layer='Key Wetlands 2011', append=TRUE)
+          if (input$prj1 & length(prj1())>0) st_write(prj1(), dsn=file, layer='Quartz Claims', append=TRUE)
+          if (input$prj2 & length(prj2())>0) st_write(prj2(), dsn=file, layer='Placer Claims', append=TRUE)
+          if (input$spp1 & length(spp1())>0) st_write(spp1(), dsn=file, layer='Caribou Herds', append=TRUE)
+          if (input$spp2 & length(spp2())>0) st_write(spp2(), dsn=file, layer='Thinhorn Sheep', append=TRUE)
+          if (input$spp3 & length(spp3())>0) st_write(spp3(), dsn=file, layer='Key Wetlands 2011', append=TRUE)
       }
     }
   )
