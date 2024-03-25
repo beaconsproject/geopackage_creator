@@ -144,7 +144,7 @@ server = function(input, output, session) {
           st_intersection(aoi) %>%
           filter(TENURE_STATUS=='Active')
     } else {
-      return(FALSE)
+      return(NULL)
     }
   })
   
@@ -209,7 +209,6 @@ server = function(input, output, session) {
   ##############################################################################
   output$map1 <- renderLeaflet({
       #m <- leaflet(limits, options = leafletOptions(attributionControl=FALSE)) %>%
-      grps <- NULL  
       m <- leaflet() %>%
         addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
         addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") %>%
@@ -251,6 +250,7 @@ server = function(input, output, session) {
           addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intactness 2020")
           
         grps <- NULL
+        #Isolate allow to wait the trigger goButton to be pushed before looking into Optionals
         tprj1 <- isolate(input$prj1)
         tprj2 <- isolate(input$prj2)
         tspp1 <- isolate(input$spp1)
@@ -314,7 +314,7 @@ server = function(input, output, session) {
           if (input$spp1 & length(spp1())>0) st_write(spp1(), dsn=file, layer='Caribou Herds', append=TRUE)
           if (input$spp2 & length(spp2())>0) st_write(spp2(), dsn=file, layer='Thinhorn Sheep', append=TRUE)
           if (input$spp3 & length(spp3())>0) st_write(spp3(), dsn=file, layer='Key Wetlands 2011', append=TRUE)
-      }
+       }
     }
   )
 
