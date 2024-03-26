@@ -89,6 +89,8 @@ server = function(input, output, session) {
   ##############################################################################
   # Read input data
   ##############################################################################
+  r <- reactiveValues(goButton = 0)
+  
   line <- reactive({
     aoi <- bnd() %>% st_transform(3578)
     st_read(bp, 'sd_line') %>%
@@ -203,11 +205,17 @@ server = function(input, output, session) {
     }
   })
 
-  
+  observeEvent(input$upload_poly, {
+    r$goButton <- 0
+  })
+  observeEvent(input$goButton, {
+    r$goButton <- 1
+  })
   ##############################################################################
   # View initial set of maps
   ##############################################################################
-  output$map1 <- renderLeaflet({
+  
+    output$map1 <- renderLeaflet({
       #m <- leaflet(limits, options = leafletOptions(attributionControl=FALSE)) %>%
       m <- leaflet() %>%
         addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
@@ -219,7 +227,7 @@ server = function(input, output, session) {
           options = layersControlOptions(collapsed = FALSE)) %>%
         hideGroup(c(""))
       
-      if(!is.null(input$upload_poly)) {
+        if(!is.null(input$upload_poly)) {
         region <- bnd() %>% st_transform(4326)
         map_bounds <- region %>% st_bbox() %>% as.character()
 
@@ -233,7 +241,8 @@ server = function(input, output, session) {
           hideGroup(c(""))
       } 
       
-      if(input$goButton >0){ 
+      #if(input$goButton >0){ 
+      if(r$goButton == 1){
         aoi <- bnd() %>% st_transform(3578)
         sd_line <- line() %>% st_transform(4326)
         sd_poly <- poly() %>% st_transform(4326)
