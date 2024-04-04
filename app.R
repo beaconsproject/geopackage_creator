@@ -6,12 +6,12 @@ library(shinydashboard)
 library(shinycssloaders)
 library(shinyjs)
 library(markdown)
-library(lubridate)
 
 options(shiny.maxRequestSize=100*1024^2) 
 bp <- 'www/bp_datasets.gpkg'
 spp <- 'www/species.gpkg'
 prj <- 'www/projected.gpkg'
+#bp <- 'H:/Shared drives/Data/bp_datasets.gpkg'
 limits <- st_read(bp, 'bnd') %>% st_transform(4326)
 
 ui = dashboardPage(skin="blue",
@@ -19,26 +19,28 @@ ui = dashboardPage(skin="blue",
     dashboardSidebar(
         sidebarMenu(id="tabs",
             menuItem("Overview", tabName = "overview", icon = icon("th")),
-            #menuItem("Explorer", tabName = "explorer", icon = icon("th"),
             menuItem("Select study area", tabName = "select", icon = icon("arrow-pointer")),
-            menuItem("Create geopackage", tabName = "data", icon = icon("arrow-pointer")),
-            menuItem("Download data", tabName = "download", icon = icon("th")),
+            menuItem("Select spatial layers", tabName = "data", icon = icon("arrow-pointer")),
+            menuItem("Download geopackage", tabName = "download", icon = icon("th")),
             hr()
         ),
         conditionalPanel(
             condition="input.tabs=='select'",
-            fileInput(inputId = "upload_poly", label = "Upload study area:", multiple = FALSE, accept=".gpkg"),
+            fileInput(inputId = "upload_poly", label = "Upload study area:", multiple = FALSE, accept=".gpkg")
         ),
          conditionalPanel(
            condition = "input.tabs == 'data'",
-           #textInput("expiry", label="Expiry date for claims:", value="2024-03-11"),
-            checkboxInput('claims', label='Include only active claims', value=FALSE),
-            sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020)),
-            actionButton("goButton", "Create geopackage")
+           HTML(paste("&nbsp; &nbsp; 1. Select optional spatial layers", 
+                      "&nbsp; &nbsp; from panel on the right",
+                      "&nbsp; &nbsp; to include in geopackage.", 
+                      "&nbsp; &nbsp; 2. Select range of fires",
+                      "&nbsp; &nbsp; to include in geopackage.", sep="<br/>")),
+           sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020)),
+           actionButton("goButton", "Preview geopackage"),
          ),
         conditionalPanel(
             condition="input.tabs=='download'",
-            div(style="position:relative; left:calc(6%);", downloadButton("downloadData", "Download data", style='color: #000'))
+            div(style="position:relative; left:calc(6%);", downloadButton("downloadData", "Download geopackage", style='color: #000'))
             )
     ),
   dashboardBody(
@@ -48,7 +50,6 @@ ui = dashboardPage(skin="blue",
     tabItems(
       tabItem(tabName="overview",
             fluidRow(
-                #box(title = "Mapview", leafletOutput("map1", height=750) %>% withSpinner(), width=12),
                 tabBox(id = "one", width="12",
                     tabPanel("Overview", includeMarkdown("www/overview.md")),
                     tabPanel("Datasets", includeMarkdown("www/datasets.md"))
@@ -57,7 +58,6 @@ ui = dashboardPage(skin="blue",
         ),
       tabItem(tabName="select",
             fluidRow(
-                #box(title = "Mapview", leafletOutput("map1", height=750) %>% withSpinner(), width=12),
                 tabBox(id = "one", width="8",
                     tabPanel("Mapview", leafletOutput("map1") %>% withSpinner())
                 ),
@@ -87,126 +87,110 @@ ui = dashboardPage(skin="blue",
 )
 
 server = function(input, output, session) {
-
   ##############################################################################
   # Read input data
   ##############################################################################
+  r <- reactiveValues(goButton = 0)
+  
   line <- reactive({
-    if (input$goButton) {
-      aoi <- bnd() %>% st_transform(3578)
-      st_read(bp, 'sd_line') %>%
-        st_intersection(aoi) %>%
-        st_cast('MULTILINESTRING')
-    }
+    aoi <- bnd() %>% st_transform(3578)
+    st_read(bp, 'sd_line') %>%
+      st_intersection(aoi) %>%
+      st_cast('MULTILINESTRING')
   })
 
   poly <- reactive({
-    if (input$goButton) {
-      aoi <- bnd() %>% st_transform(3578)
-      vect(bp, 'sd_poly') %>%
-        st_as_sf() %>%
-        st_cast('MULTIPOLYGON') %>%
-        st_intersection(aoi) %>%
-        st_cast('MULTIPOLYGON')
-    }
+    aoi <- bnd() %>% st_transform(3578)
+    vect(bp, 'sd_poly') %>%
+      st_as_sf() %>%
+      st_cast('MULTIPOLYGON') %>%
+      st_intersection(aoi) %>%
+      st_cast('MULTIPOLYGON')
   })
   
-   fires <- reactive({
-    if (input$goButton) {
-      aoi <- bnd() %>% st_transform(3578)
-        x=vect(bp, 'fires') %>%
-          st_as_sf() %>%
-          st_cast('MULTIPOLYGON') %>%
-          filter(YEAR >= input$minmax[1] & YEAR <= input$minmax[2]) %>%
-          st_intersection(aoi) %>%
-          st_cast('MULTIPOLYGON')
-    }
+  fires <- reactive({
+    req(bnd())
+    aoi <- bnd() %>% st_transform(3578)
+      vect(bp, 'fires') %>%
+        st_as_sf() %>%
+        st_cast('MULTIPOLYGON') %>%
+        filter(YEAR >= input$minmax[1] & YEAR <= input$minmax[2]) %>%
+        st_intersection(aoi) %>%
+        st_cast('MULTIPOLYGON')
   })
 
   ifl_2000 <- reactive({
-    if (input$goButton) {
       aoi <- bnd() %>% st_transform(3578)
         st_read(bp, 'ifl_2000') %>%
           st_intersection(aoi)
-    }
+    #}
   })
    
   ifl_2020 <- reactive({
-    if (input$goButton) {
       aoi <- bnd() %>% st_transform(3578)
         st_read(bp, 'ifl_2020') %>%
           st_intersection(aoi)
-    }
+    #}
   })
 
   pa_2021 <- reactive({
-    if (input$goButton) {
       aoi <- bnd() %>% st_transform(3578)
         st_read(bp, 'protected_areas') %>%
           st_intersection(aoi)
-    }
+    #}
   })
 
-  prj1 <- reactive({ 
-    if (input$goButton & input$prj1) {
+  prj1 <- eventReactive(input$goButton, {
+    if (input$prj1) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
-      x <- st_read(prj, 'Quartz Claims')
-      if (input$claims) {
-        x <- filter(x, TENURE_STATUS=='Active')
-      }
-      #mutate(date=ymd_hms(EXPIRY_DATE)) %>%
-      #filter(date >= input$expiry) %>%
-      x <- st_intersection(x, aoi)
+        st_read(prj, 'Quartz Claims') %>%
+          st_intersection(aoi) %>%
+          filter(TENURE_STATUS=='Active')
     } else {
-      x <- st_read(prj, 'Quartz Claims') %>% st_transform(4326) %>%
-        st_cast('MULTIPOLYGON')
+      return(NULL)
     }
   })
   
-  prj2 <- reactive({ 
-    if (input$goButton & input$prj2) {
+  prj2 <- eventReactive(input$goButton, {
+     if (input$prj2) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
-      x <- st_read(prj, 'Placer Claims')
-      if (input$claims) {
-        x <- filter(x, TENURE_STATUS=='Active')
-      }
-      #mutate(date=ymd_hms(EXPIRY_DATE)) %>%
-      #filter(date >= input$expiry) %>%
-      x <- st_intersection(x, aoi)
+        st_read(prj, 'Placer Claims') %>%
+          st_intersection(aoi) %>%
+          filter(TENURE_STATUS=='Active')
     } else {
-      x <- st_read(prj, 'Placer Claims') %>% st_transform(4326)
+      return(NULL)
     }
   })
   
-  spp1 <- reactive({ 
-    if (input$goButton & input$spp1) {
+  spp1 <- eventReactive(input$goButton, {
+    if (input$spp1) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
       x <- st_read(spp, 'Caribou Herds')
       #x <- x[aoi,]
       x <- st_intersection(x, aoi)
     } else {
-      x <- st_read(spp, 'Caribou Herds') %>% st_transform(4326)
+      return(NULL)
     }
   })
   
-  spp2 <- reactive({ 
-    if (input$goButton & input$spp2) {
+  spp2 <- eventReactive(input$goButton, {
+    if (input$spp2) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
         st_read(spp, 'Thinhorn Sheep') %>%
           st_intersection(aoi)
     } else {
-      x <- st_read(spp, 'Thinhorn Sheep') %>% st_transform(4326)
+      return(NULL)
     }
   })
 
-  spp3 <- reactive({ 
-    if (input$goButton & input$spp3) {
+  spp3 <- eventReactive(input$goButton, {
+    if (input$spp3) {
       aoi <- bnd() %>% st_transform(3578) %>% st_union()
         st_read(spp, 'Key Wetlands 2011') %>%
           st_intersection(aoi)
     } else {
-      x <- st_read(spp, 'Key Wetlands 2011') %>% st_transform(4326)
-    }
+      return(NULL)
+  }
   })
   
   ##############################################################################
@@ -222,12 +206,19 @@ server = function(input, output, session) {
     }
   })
 
+  observeEvent(input$upload_poly, {
+    r$goButton <- 0
+  })
+  observeEvent(input$goButton, {
+    r$goButton <- 1
+  })
   ##############################################################################
   # View initial set of maps
   ##############################################################################
-  output$map1 <- renderLeaflet({
-    if (is.null(input$upload_poly)) {
-      m <- leaflet(limits, options = leafletOptions(attributionControl=FALSE)) %>%
+  
+    output$map1 <- renderLeaflet({
+      #m <- leaflet(limits, options = leafletOptions(attributionControl=FALSE)) %>%
+      m <- leaflet() %>%
         addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
         addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") %>%
         addPolygons(data=limits, color='black', fill=F, weight=1, group="Database limits") %>%
@@ -236,86 +227,80 @@ server = function(input, output, session) {
           overlayGroups = c("Database limits"),
           options = layersControlOptions(collapsed = FALSE)) %>%
         hideGroup(c(""))
-      } else {
+      
+        if(!is.null(input$upload_poly)) {
         region <- bnd() %>% st_transform(4326)
         map_bounds <- region %>% st_bbox() %>% as.character()
-        m <- leaflet(region) %>%
+
+        m <- m %>%
           fitBounds(map_bounds[1], map_bounds[2], map_bounds[3], map_bounds[4]) %>%
-          addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
-          addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") %>%
-          addPolygons(data=limits, color='black', fill=F, weight=1, group="Database limits") %>%
           addPolygons(data=region, color='blue', fill=F, weight=2, group="Study area") %>%
           addLayersControl(position = "topright",
             baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
             overlayGroups = c("Database limits", "Study area"),
             options = layersControlOptions(collapsed = FALSE)) %>%
           hideGroup(c(""))
-        }
-    m
-  })
-
-  ##############################################################################
-  # Update map with clipped maps
-  ##############################################################################
-  genGpkg <- eventReactive(input$goButton,{
-  #observe({
-   # if (input$goButton) {
-      aoi <- bnd() %>% st_transform(3578)
-      sd_line <- line() %>% st_transform(4326)
-      sd_poly <- poly() %>% st_transform(4326)
-      fires <- fires() %>%  st_transform(4326)
-      ifl_2000 <- ifl_2000() %>% st_transform(4326)
-      ifl_2020 <- ifl_2020() %>% st_transform(4326)
-      pa_2021 <- pa_2021() %>% st_transform(4326)
+      } 
       
-      proxy <- leafletProxy("map1") %>%
-      addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") %>%
-      addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") %>%
-      addPolygons(data=fires,fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') %>%
-      addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intactness 2000") %>%
-      addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intactness 2020") %>%
-      addPolygons(data=pa_2021, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Protected areas") #%>%
-
-      grps <- NULL
-      if (input$prj1 & dim(prj1())[1]>0) { 
-        prj1 <- prj1() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
-        grps <- c(grps,"Quartz Claims")
+      #if(input$goButton >0){ 
+      if(r$goButton == 1){
+        aoi <- bnd() %>% st_transform(3578)
+        sd_line <- line() %>% st_transform(4326)
+        sd_poly <- poly() %>% st_transform(4326)
+        fires <- fires() %>%  st_transform(4326)
+        ifl_2000 <- ifl_2000() %>% st_transform(4326)
+        ifl_2020 <- ifl_2020() %>% st_transform(4326)
+        pa_2021 <- pa_2021() %>% st_transform(4326)
+        
+        m <- m %>%
+          addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") %>%
+          addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") %>%
+          addPolygons(data=fires, fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') %>%
+          addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intactness 2000") %>%
+          addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intactness 2020")
+          
+        grps <- NULL
+        #Isolate allow to wait the trigger goButton to be pushed before looking into Optionals
+        tprj1 <- isolate(input$prj1)
+        tprj2 <- isolate(input$prj2)
+        tspp1 <- isolate(input$spp1)
+        tspp2 <- isolate(input$spp2)
+        tspp3 <- isolate(input$spp3)
+        
+        if (tprj1 & length(prj1())>0) { 
+          prj1 <- prj1() %>% st_transform(4326)
+          m <- m %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
+          grps <- c(grps,"Quartz Claims")
+        }
+        if (tprj2 & length(prj2())>0) {
+          prj2 <- prj2() %>% st_transform(4326)
+          m <- m %>% addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer Claims")
+          grps <- c(grps,"Placer Claims")
+        }
+        if (tspp1 & length(spp1())>0) {
+          spp1 <- spp1() %>% st_transform(4326)
+          m <- m %>% addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
+          grps <- c(grps,"Caribou Herds")
+        }
+        if (tspp2 & length(spp2())>0) {
+          spp2 <- spp2() %>% st_transform(4326)
+          m <- m %>% addPolygons(data=spp2, color='red', fill=T, weight=1, group="Thinhorn Sheep")
+          grps <- c(grps,"Thinhorn Sheep")
+        }
+        if (tspp3 & length(spp3())>0) {
+          spp3 <- spp3() %>% st_transform(4326)
+          m <- m %>% addPolygons(data=spp3, color='red', fill=T, weight=1, group="Key Wetlands 2011")
+          grps <- c(grps,"Key Wetlands 2011")
+        }
+        
+        m <- m %>% #addLayersControl(position = "topright",
+          addLayersControl(position = "topright",
+                           baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
+                           overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intactness 2000", "Intactness 2020", "Protected areas", grps),
+                           options = layersControlOptions(collapsed = FALSE)) %>%
+          hideGroup(c("Database limits", "Intactness 2000", "Intactness 2020", "Protected areas", grps))
       }
-      if (input$prj2 & dim(prj2())[1]>0) { 
-        prj2 <- prj2() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer Claims")
-        grps <- c(grps,"Placer Claims")
-      }
-      if (input$spp1 & dim(spp1())[1]>0) { 
-        spp1 <- spp1() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
-        grps <- c(grps,"Caribou Herds")
-      }
-      if (input$spp2 & dim(spp2())[1]>0) { 
-        spp2 <- spp2() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=spp2, color='red', fill=T, weight=1, group="Thinhorn Sheep")
-        grps <- c(grps,"Thinhorn Sheep")
-      }
-      if (input$spp3 & dim(spp3())[1]>0) { 
-        spp3 <- spp3() %>% st_transform(4326)
-        proxy <- proxy %>% addPolygons(data=spp3, color='red', fill=T, weight=1, group="Key Wetlands 2011")
-        grps <- c(grps,"Key Wetlands 2011")
-      }
-
-      proxy <- proxy %>% #addLayersControl(position = "topright",
-      addLayersControl(position = "topright",
-        baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
-        overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intactness 2000", "Intactness 2020", "Protected areas", grps),
-        options = layersControlOptions(collapsed = FALSE)) %>%
-      hideGroup(c("Database limits", "Intactness 2000", "Intactness 2020", "Protected areas", grps))
-    #}
-  })
-
-  observe({
-    if (input$goButton) {
-      genGpkg()
-    }
+     m
   })
 
   ##############################################################################
@@ -324,6 +309,8 @@ server = function(input, output, session) {
   output$downloadData <- downloadHandler(
     filename = function() { paste("disturbances-", Sys.Date(), ".gpkg", sep="") },
     content = function(file) {
+        showModal(modalDialog("Downloading...", footer=NULL))
+        on.exit(removeModal())
         st_write(bnd(), dsn=file, layer='studyarea')
         if (input$goButton) {
           st_write(line(), dsn=file, layer='linear_disturbance', append=TRUE)
@@ -332,12 +319,12 @@ server = function(input, output, session) {
           st_write(ifl_2000(), dsn=file, layer='ifl_2000', append=TRUE)
           st_write(ifl_2020(), dsn=file, layer='ifl_2020', append=TRUE)
           st_write(pa_2021(), dsn=file, layer='protected_areas', append=TRUE)
-          if (input$prj1 & dim(prj1())[1]>0) st_write(prj1(), dsn=file, layer='Quartz Claims', append=TRUE)
-          if (input$prj2 & dim(prj2())[1]>0) st_write(prj2(), dsn=file, layer='Placer Claims', append=TRUE)
-          if (input$spp1 & dim(spp1())[1]>0) st_write(spp1(), dsn=file, layer='Caribou Herds', append=TRUE)
-          if (input$spp2 & dim(spp2())[1]>0) st_write(spp2(), dsn=file, layer='Thinhorn Sheep', append=TRUE)
-          if (input$spp3 & dim(spp3())[1]>0) st_write(spp3(), dsn=file, layer='Key Wetlands 2011', append=TRUE)
-      }
+          if (input$prj1 & length(prj1())>0) st_write(prj1(), dsn=file, layer='Quartz Claims', append=TRUE)
+          if (input$prj2 & length(prj2())>0) st_write(prj2(), dsn=file, layer='Placer Claims', append=TRUE)
+          if (input$spp1 & length(spp1())>0) st_write(spp1(), dsn=file, layer='Caribou Herds', append=TRUE)
+          if (input$spp2 & length(spp2())>0) st_write(spp2(), dsn=file, layer='Thinhorn Sheep', append=TRUE)
+          if (input$spp3 & length(spp3())>0) st_write(spp3(), dsn=file, layer='Key Wetlands 2011', append=TRUE)
+       }
     }
   )
 
