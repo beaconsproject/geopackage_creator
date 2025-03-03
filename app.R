@@ -35,7 +35,7 @@ ui = dashboardPage(skin="blue",
                       "&nbsp; &nbsp; to include in geopackage.", 
                       "&nbsp; &nbsp; 2. Select range of fires",
                       "&nbsp; &nbsp; to include in geopackage.", sep="<br/>")),
-           sliderInput("minmax", label="Range of fires to include:", min=1920, max=2020, value=c(1960, 2020)),
+           sliderInput("minmax", label="Range of fires to include:", min=1920, max=2023, value=c(1960, 2023)),
            actionButton("goButton", "Preview geopackage"),
          ),
         conditionalPanel(
