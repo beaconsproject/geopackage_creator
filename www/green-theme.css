@@ -1,0 +1,118 @@
+/* Custom orange skin for shinydashboard */
+.skin-black .main-header .logo {
+  background-color: #315e2b !important;; /* Dark orange navbar */
+  color: #ffffff !important;;
+}
+
+.skin-black .main-header .navbar {
+  background-color: #315e2b !important;; /* Dark orange navbar */
+}
+
+.skin-black .main-sidebar {
+  background-color: black !important;; /* Light orange sidebar */
+}
+
+.skin-black .main-sidebar .sidebar-menu > li.active > a {
+  background-color: #448844 !important;; /* Highlight for active menu */
+}
+
+.skin-black .main-sidebar .sidebar-menu > li:hover > a {
+  background-color: #448844 !important;; /* Dark orange navbar */
+}
+
+.skin-black .content-wrapper, .skin-blue .right-side {
+  background-color: #ffffff !important;; /* Light orange content area */
+}
+
+/* Change the color of the sidebar toggle button */
+.main-header .sidebar-toggle {
+  background-color: #315e2b;  /* Orange background */
+  color: #315e2b;  /* White icon color */
+}
+
+/* Optionally, adjust the icon itself */
+.main-header .sidebar-toggle i {
+  color: #315e2b;  /* Change icon color to white */
+}
+
+/* Ensure the background of the life-ring remains orange */
+.main-header .dropdown-toggle {
+  background-color: #315e2b !important;  /* Orange background */
+}
+
+/* Make sure the life-ring icon stays black */
+.main-header .dropdown-toggle .fa-life-ring {
+  color: #ffffff !important; /* Black icon */
+}
+
+/* Maintain orange background on hover */
+.main-header .dropdown-toggle:hover {
+  background-color: #315e2b !important;  /* Orange background on hover */
+}
+
+/* Keep the life-ring icon black even on hover */
+.main-header .dropdown-toggle:hover .fa-life-ring {
+  color: black !important;  /* Black icon on hover */
+}
+
+/* Prevent the dropdown toggle from turning white */
+.main-header .dropdown-toggle:focus {
+  background-color: #315e2b !important;  /* Orange background when focused */
+  color: black !important;  /* Black icon when focused */
+}
+
+/* Optional: Customize the background color of the dropdown menu (optional) */
+.main-header .dropdown-menu {
+  background-color: #ffffff !important;  /* Orange background for the dropdown menu */
+  color: black !important;  /* Black icon when focused */
+}
+
+/* Change the text color of the dropdown menu items to black */
+.main-header .dropdown-menu a {
+  color: black !important;  /* Set the link text color to black */
+}
+
+/* Change the text color of the dropdown menu items when hovered to black */
+.main-header .dropdown-menu a:hover {
+  color: black !important;  /* Ensure the text color stays black on hover */
+}
+
+/* Ensure menuSubItems are black when not selected */
+.sidebar-menu .treeview-menu > li > a {
+  color: white;  /* Set text color to black */
+  background-color:black
+}
+
+
+/* MENUSUBITEM */
+/* Optionally, make the text color white when selected */
+.sidebar-menu .treeview-menu > li.active > a {
+  color: white;
+  background-color: #448844;  /* Optional: You can change the background when selected */
+}
+
+/* Maintain orange background on hover */
+.sidebar-menu .treeview-menu:hover {
+  background-color: #black !important;  /* Orange background on hover */
+}
+
+.sidebar-menu .treeview-menu > li > a:hover {
+  background-color: #32a832 !important;  /* Green background on hover */
+  color: white !important;               /* Keep text white when hovering */
+}
+
+/* Optional: Customize the icon color when not selected */
+.sidebar-menu .treeview-menu > li > a i {
+  color: white;  /* Set icon color to black */
+  background-color:black
+}
+
+/* Optional: Customize the icon color when selected */
+.sidebar-menu .treeview-menu > li.active > a i {
+  color: white;
+  background-color:#448844
+}
+/* Optional: Customize the icon color when hovering */
+.sidebar-menu .treeview-menu > li > a:hover i {
+  color: white !important;   /* Icon color stays white when hovering */
+}
