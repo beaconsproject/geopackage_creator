@@ -246,7 +246,7 @@ server = function(input, output, session) {
         st_write(pa_2021(), dsn=file, layer='protected_areas', append=TRUE)
         if (input$prj1 & length(prj1())>0) st_write(prj1(), dsn=file, layer='Quartz_Claims', append=TRUE)
         if (input$prj2 & length(prj2())>0) st_write(prj2(), dsn=file, layer='Placer_Claims', append=TRUE)
-        if (input$spp1 & length(spp1())>0) st_write(spp1(), dsn=file, layer='Caribou Herds', append=TRUE)
+        if (input$spp1 & length(spp1())>0) st_write(spp1(), dsn=file, layer='Caribou_Herds', append=TRUE)
       }
     }
   )
