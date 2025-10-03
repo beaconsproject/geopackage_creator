@@ -101,7 +101,22 @@ ui = dashboardPage(skin="black",
                        tabItem(tabName="select",
                                fluidRow(
                                  tabBox(id = "one", width="8",
-                                        tabPanel("Mapview", uiOutput("mapUI") %>% withSpinner())
+                                        tabPanel("Mapview", uiOutput("mapUI") %>% withSpinner()),
+                                        tabPanel("User Guide",
+                                                 # Dynamically update the content of Guidance based on selected tab
+                                                 conditionalPanel(
+                                                   condition = "input.tabs == 'select'",
+                                                   includeMarkdown("./docs/select_doc.md")
+                                                 ),
+                                                 conditionalPanel(
+                                                   condition = "input.tabs == 'data'",
+                                                   includeMarkdown("./docs/data_doc.md")
+                                                 ),
+                                                 conditionalPanel(
+                                                   condition = "input.tabs == 'download'",
+                                                   includeMarkdown("./docs/dwd_doc.md")
+                                                 )
+                                        )
                                  ),
                                  conditionalPanel(
                                    condition = "input.tabs == 'data'",

@@ -21,80 +21,8 @@ server = function(input, output, session) {
   ##############################################################################
   # Read input data
   ##############################################################################
-  r <- reactiveValues(goButton = 0)
-  
-  line <- reactive({
-    aoi <- bnd() %>% st_transform(3578)
-    st_read(bp, 'sd_line') %>%
-      st_filter(aoi, .predicate = st_intersects)
-  })
-  
-  poly <- reactive({
-    aoi <- bnd() %>% st_transform(3578)
-    vect(bp, 'sd_poly') %>%
-      st_as_sf() %>%
-      st_filter(aoi, .predicate = st_intersects)
-  })
-  
-  fires <- reactive({
-    req(bnd())
-    aoi <- bnd() %>% st_transform(3578)
-    vect(bp, 'fires') %>%
-      st_as_sf() %>%
-      st_cast('MULTIPOLYGON') %>%
-      filter(YEAR >= input$minmax[1] & YEAR <= input$minmax[2]) %>%
-      st_filter(aoi, .predicate = st_intersects)
-  })
-  
-  ifl_2000 <- reactive({
-    aoi <- bnd() %>% st_transform(3578)
-    st_read(bp, 'Intact_FL_2000') %>%
-      st_intersection(aoi)
-  })
-  
-  ifl_2020 <- reactive({
-    aoi <- bnd() %>% st_transform(3578)
-    st_read(bp, 'Intact_FL_2020') %>%
-      st_intersection(aoi)
-  })
-  
-  pa_2021 <- reactive({
-    aoi <- bnd() %>% st_transform(3578)
-    st_read(bp, 'protected_areas') %>% 
-      st_filter(aoi, .predicate = st_intersects)
-  })
-  
-  prj1 <- eventReactive(input$goButton, {
-    if (input$prj1) {
-      aoi <- bnd() %>% st_transform(3578) %>% st_union()
-      st_read(prj, 'Quartz Claims') %>%
-        dplyr::filter(TENURE_STATUS=='Active') %>%
-        st_filter(aoi, .predicate = st_intersects)
-    } else {
-      return(NULL)
-    }
-  })
-  
-  prj2 <- eventReactive(input$goButton, {
-    if (input$prj2) {
-      aoi <- bnd() %>% st_transform(3578) %>% st_union()
-      st_read(prj, 'Placer Claims') %>%
-        filter(TENURE_STATUS=='Active') %>%
-        st_filter(aoi, .predicate = st_intersects)
-    } else {
-      return(NULL)
-    }
-  })
-  
-  spp1 <- eventReactive(input$goButton, {
-    if (input$spp1) {
-      aoi <- bnd() %>% st_transform(3578) %>% st_union()
-      st_read(spp, 'Caribou Herds') %>% 
-        st_filter(aoi, .predicate = st_intersects)
-    } else {
-      return(NULL)
-    }
-  })
+  r <- reactiveValues(goButton = 0,
+                      switch_tab =0)
   
   ##############################################################################
   # Uploaded data
@@ -109,7 +37,8 @@ server = function(input, output, session) {
         req(input$upload_poly)
         i <- read_shp_from_upload(input$upload_poly) %>%
           st_zm(drop = TRUE, what = "ZM")  %>%
-          st_make_valid()
+          st_make_valid() %>%
+          dplyr::select(-any_of(c("fid", "FID")))
         
         geom_type <- unique(sf::st_geometry_type(i))
         if (any(geom_type %in% c("POLYGON", "MULTIPOLYGON"))) {
@@ -136,6 +65,79 @@ server = function(input, output, session) {
   })
   observeEvent(input$goButton, {
     r$goButton <- 1
+  })
+  
+  # storage for clipped layers
+  clipped_layers <- reactiveValues()
+  
+  observeEvent(input$goButton, {
+    req(bnd())
+    
+    # show pop-up ...
+    showModal(modalDialog(
+      title = "Extracting layers. Please wait...",
+      easyClose = TRUE,
+      footer = NULL)
+    )
+    
+    aoi <- bnd() %>% st_transform(3578)
+    
+    # ---- run your clipping once ----
+    clipped_layers$line <- st_read(bp, 'sd_line') %>%
+      st_filter(aoi, .predicate = st_intersects)
+    
+    clipped_layers$poly <- vect(bp, 'sd_poly') %>%
+      st_as_sf() %>%
+      st_filter(aoi, .predicate = st_intersects)
+    
+    clipped_layers$fires <- vect(bp, 'fires') %>%
+      st_as_sf() %>%
+      st_cast('MULTIPOLYGON') %>%
+      filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) %>%
+      st_filter(aoi, .predicate = st_intersects)
+    
+    clipped_layers$ifl_2000 <- st_read(bp, 'Intact_FL_2000') %>%
+      st_intersection(aoi)
+    
+    clipped_layers$ifl_2020 <- st_read(bp, 'Intact_FL_2020') %>%
+      st_intersection(aoi)
+    
+    clipped_layers$pa_2021 <- st_read(bp, 'protected_areas') %>% 
+      st_filter(aoi, .predicate = st_intersects)
+    
+    if (input$prj1) {
+      clipped_layers$prj1 <- st_read(prj, 'Quartz Claims') %>%
+        filter(TENURE_STATUS == "Active") %>%
+        st_filter(st_union(aoi), .predicate = st_intersects)
+    } else {
+      clipped_layers$prj1 <- NULL
+    }
+    
+    if (input$prj2) {
+      clipped_layers$prj2 <- st_read(prj, 'Placer Claims') %>%
+        filter(TENURE_STATUS == "Active") %>%
+        st_filter(st_union(aoi), .predicate = st_intersects)
+    } else {
+      clipped_layers$prj2 <- NULL
+    }
+    if (input$spp1) {
+      clipped_layers$spp1 <- st_read(spp, 'Caribou Herds') %>%
+        st_filter(st_union(aoi), .predicate = st_intersects)
+    } else {
+      clipped_layers$spp1 <- NULL
+    }
+    r$switch_tab <- 1
+    removeModal()
+  })
+ 
+  ##############################################################################
+  # Observe on tab
+  ##############################################################################
+  observeEvent(isTRUE(r$switch_tab ==1), {
+    # Only switch if the map checkbox is NOT checked
+    if (!isTRUE(input$enable_map)) {
+      updateTabItems(session, "tabs", "download")
+    }
   })
   ##############################################################################
   # View initial set of maps
@@ -173,13 +175,14 @@ server = function(input, output, session) {
         
         #if(input$goButton >0){ 
         if(r$goButton == 1){
+          
           aoi <- bnd() %>% st_transform(3578)
-          sd_line <- line() %>% st_transform(4326)
-          sd_poly <- poly() %>% st_transform(4326)
-          fires <- fires() %>%  st_transform(4326)
-          ifl_2000 <- ifl_2000() %>% st_transform(4326)
-          ifl_2020 <- ifl_2020() %>% st_transform(4326)
-          pa_2021 <- pa_2021() %>% st_transform(4326)
+          sd_line <- clipped_layers$line %>% st_transform(4326)
+          sd_poly <- clipped_layers$poly %>% st_transform(4326)
+          fires <- clipped_layers$fires %>%  st_transform(4326)
+          ifl_2000 <- clipped_layers$ifl_2000 %>% st_transform(4326)
+          ifl_2020 <- clipped_layers$ifl_2020 %>% st_transform(4326)
+          pa_2021 <- clipped_layers$pa_2021 %>% st_transform(4326)
           
           m <- m %>%
             addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") %>%
@@ -194,18 +197,18 @@ server = function(input, output, session) {
           tprj2 <- isolate(input$prj2)
           tspp1 <- isolate(input$spp1)
           
-          if (tprj1 & length(prj1())>0) { 
-            prj1 <- prj1() %>% st_transform(4326)
+          if (tprj1 & length(clipped_layers$prj1)>0) { 
+            prj1 <- clipped_layers$prj1 %>% st_transform(4326)
             m <- m %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
             grps <- c(grps,"Quartz Claims")
           }
-          if (tprj2 & length(prj2())>0) {
-            prj2 <- prj2() %>% st_transform(4326)
+          if (tprj2 & length(clipped_layers$prj2)>0) {
+            prj2 <- clipped_layers$prj2 %>% st_transform(4326)
             m <- m %>% addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer Claims")
             grps <- c(grps,"Placer Claims")
           }
-          if (tspp1 & length(spp1())>0) {
-            spp1 <- spp1() %>% st_transform(4326)
+          if (tspp1 & length(clipped_layers$spp1)>0) {
+            spp1 <- clipped_layers$spp1 %>% st_transform(4326)
             m <- m %>% addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
             grps <- c(grps,"Caribou Herds")
           }
@@ -236,18 +239,17 @@ server = function(input, output, session) {
     content = function(file) {
       showModal(modalDialog("Downloading...", footer=NULL))
       on.exit(removeModal())
+      
       st_write(bnd(), dsn=file, layer='studyarea')
-      if (input$goButton) {
-        st_write(line(), dsn=file, layer='linear_disturbance', append=TRUE)
-        st_write(poly(), dsn=file, layer='areal_disturbance', append=TRUE)
-        st_write(fires(), dsn=file, layer='fires', append=TRUE)
-        st_write(ifl_2000(), dsn=file, layer='Intact_FL_2000', append=TRUE)
-        st_write(ifl_2020(), dsn=file, layer='Intact_FL_2020', append=TRUE)
-        st_write(pa_2021(), dsn=file, layer='protected_areas', append=TRUE)
-        if (input$prj1 & length(prj1())>0) st_write(prj1(), dsn=file, layer='Quartz_Claims', append=TRUE)
-        if (input$prj2 & length(prj2())>0) st_write(prj2(), dsn=file, layer='Placer_Claims', append=TRUE)
-        if (input$spp1 & length(spp1())>0) st_write(spp1(), dsn=file, layer='Caribou_Herds', append=TRUE)
-      }
+      if (length(clipped_layers$line)>0)st_write(clipped_layers$line, dsn=file, layer='linear_disturbance', append=TRUE)
+      if (length(clipped_layers$poly)>0)st_write(clipped_layers$poly, dsn=file, layer='areal_disturbance', append=TRUE)
+      if (length(clipped_layers$fires)>0)st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
+      if (length(clipped_layers$ifl_2000)>0)st_write(clipped_layers$ifl_2000, dsn=file, layer='Intact_FL_2000', append=TRUE)
+      if (length(clipped_layers$ifl_2020)>0)st_write(clipped_layers$ifl_2020, dsn=file, layer='Intact_FL_2020', append=TRUE)
+      if (length(clipped_layers$pa_2021)>0)st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
+      if (input$prj1 & length(clipped_layers$prj1)>0) st_write(clipped_layers$prj1, dsn=file, layer='Quartz_Claims', append=TRUE)
+      if (input$prj2 & length(clipped_layers$prj2)>0) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
+      if (input$spp1 & length(clipped_layers$spp1)>0) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
     }
   )
   
