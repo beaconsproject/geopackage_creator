@@ -32,7 +32,15 @@ server = function(input, output, session) {
       return(NULL)  
     }
     
-    if(input$sourceSA == "sashp"){
+    if(is.null(input$sourceSA)){
+      showModal(modalDialog(
+        title = "Missing file format",
+        "Please set the file format before uploading the studyarea.",
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+      i <- NULL
+    } else if(input$sourceSA == "sashp"){
       if(!is.null(input$upload_poly)){
         req(input$upload_poly)
         i <- read_shp_from_upload(input$upload_poly) %>%
@@ -56,7 +64,7 @@ server = function(input, output, session) {
       }else{
         i <- NULL
       }
-    }
+    } 
     return(i)
   })
   
