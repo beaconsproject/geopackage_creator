@@ -104,10 +104,13 @@ server = function(input, output, session) {
       filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) %>%
       st_filter(aoi, .predicate = st_intersects)
     
-    clipped_layers$ifl_2000 <- st_read(bp, 'Intact_FL_2000') %>%
+    clipped_layers$fp_500m <- st_read(bp, 'footprint_500m') %>%
       st_intersection(aoi)
     
-    clipped_layers$ifl_2020 <- st_read(bp, 'Intact_FL_2020') %>%
+    clipped_layers$ifl_2000 <- st_read(bp, 'ifl_2000') %>%
+      st_intersection(aoi)
+
+        clipped_layers$ifl_2020 <- st_read(bp, 'ifl_2020') %>%
       st_intersection(aoi)
     
     clipped_layers$pa_2021 <- st_read(bp, 'protected_areas') %>% 
@@ -191,13 +194,15 @@ server = function(input, output, session) {
           ifl_2000 <- clipped_layers$ifl_2000 %>% st_transform(4326)
           ifl_2020 <- clipped_layers$ifl_2020 %>% st_transform(4326)
           pa_2021 <- clipped_layers$pa_2021 %>% st_transform(4326)
+          fp_500m <- clipped_layers$fp_500m %>% st_transform(4326)
           
           m <- m %>%
             addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") %>%
             addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") %>%
             addPolygons(data=fires, fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') %>%
             addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intact FL 2000") %>%
-            addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intact FL 2020")
+            addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intact FL 2020") %>%
+            addPolygons(data=fp_500m, fill=T, stroke=F, fillColor='#663399', fillOpacity=0.5, group="Footprint 500m")
           
           grps <- NULL
           #Isolate allow to wait the trigger goButton to be pushed before looking into Optionals
@@ -224,9 +229,9 @@ server = function(input, output, session) {
           m <- m %>% #addLayersControl(position = "topright",
             addLayersControl(position = "topright",
                              baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
-                             overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intact FL 2000", "Intact FL 2020", "Protected areas", grps),
+                             overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intact FL 2000", "Intact FL 2020", "Footprint 500m", "Protected areas", grps),
                              options = layersControlOptions(collapsed = FALSE)) %>%
-            hideGroup(c("Database limits", "Intact FL 2000", "Intact FL 2020", "Protected areas", grps))
+            hideGroup(c("Database limits", "Intact FL 2000", "Intact FL 2020", "Protected areas", "Footprint 500m", grps))
         }
         m
       })
@@ -247,7 +252,7 @@ server = function(input, output, session) {
     content = function(file) {
       showModal(modalDialog("Downloading...", footer=NULL))
       on.exit(removeModal())
-      
+      browser()
       st_write(bnd(), dsn=file, layer='studyarea')
       if (nrow(clipped_layers$line)>0)st_write(clipped_layers$line, dsn=file, layer='linear_disturbance', append=TRUE)
       if (nrow(clipped_layers$poly)>0)st_write(clipped_layers$poly, dsn=file, layer='areal_disturbance', append=TRUE)
@@ -255,9 +260,10 @@ server = function(input, output, session) {
       if (nrow(clipped_layers$ifl_2000)>0)st_write(clipped_layers$ifl_2000, dsn=file, layer='Intact_FL_2000', append=TRUE)
       if (nrow(clipped_layers$ifl_2020)>0)st_write(clipped_layers$ifl_2020, dsn=file, layer='Intact_FL_2020', append=TRUE)
       if (nrow(clipped_layers$pa_2021)>0)st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
-      if (input$prj1 & nrow(clipped_layers$prj1)>0) st_write(clipped_layers$prj1, dsn=file, layer='Quartz_Claims', append=TRUE)
-      if (input$prj2 & nrow(clipped_layers$prj2)>0) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
-      if (input$spp1 & nrow(clipped_layers$spp1)>0) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
+      if (nrow(clipped_layers$fp_500m)>0)st_write(clipped_layers$fp_500m, dsn=file, layer='footprint_500m', append=TRUE)
+      if (isTRUE(input$prj1 & nrow(clipped_layers$prj1)>0)) st_write(clipped_layers$prj1, dsn=file, layer='Quartz_Claims', append=TRUE)
+      if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
+      if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
     }
   )
   
