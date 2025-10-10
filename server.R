@@ -252,8 +252,9 @@ server = function(input, output, session) {
     content = function(file) {
       showModal(modalDialog("Downloading...", footer=NULL))
       on.exit(removeModal())
-      browser()
-      st_write(bnd(), dsn=file, layer='studyarea')
+      
+      sa <- bnd() %>% st_transform(3578)
+      st_write(sa, dsn=file, layer='studyarea')
       if (nrow(clipped_layers$line)>0)st_write(clipped_layers$line, dsn=file, layer='linear_disturbance', append=TRUE)
       if (nrow(clipped_layers$poly)>0)st_write(clipped_layers$poly, dsn=file, layer='areal_disturbance', append=TRUE)
       if (nrow(clipped_layers$fires)>0)st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
