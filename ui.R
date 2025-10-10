@@ -1,4 +1,5 @@
 ui = dashboardPage(skin="black",
+                   title = "BEACONs GeoPackage Creator", 
                    dashboardHeader(title = tags$div(
                      tags$img(
                        src = "logoblanc.png",  # Replace with your logo file name
