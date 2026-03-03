@@ -1,5 +1,7 @@
 server = function(input, output, session) {
 
+  rv <- reactiveValues(gpkg_layers = NULL)
+  
   ################################################################################################
   # RELOAD
   observeEvent(input$reload_btn, {
@@ -15,9 +17,26 @@ server = function(input, output, session) {
     req(input$sourceSA == 'sagpkg')
     file <- input$upload_poly$datapath
     layers <- st_layers(file)$name
+    rv$gpkg_layers <- layers
+    
     updateSelectInput(session = getDefaultReactiveDomain(), "saLayer", choices = c("Select a layer", layers))
+  
   })
   
+output$addLayersUI <- renderUI({
+  
+  req(rv$gpkg_layers)
+  req(input$saLayer)
+  req(input$saLayer != "Select a layer")
+  
+  other_layers <- setdiff(rv$gpkg_layers, input$saLayer)
+  
+  checkboxGroupInput(
+    "extraLayers",
+    label = "Select additional layers to include:",
+    choices = other_layers
+  )
+})
   ##############################################################################
   # Read input data
   ##############################################################################
@@ -255,16 +274,25 @@ server = function(input, output, session) {
       
       sa <- bnd() %>% st_transform(3578)
       st_write(sa, dsn=file, layer='studyarea')
-      if (nrow(clipped_layers$line)>0)st_write(clipped_layers$line, dsn=file, layer='linear_disturbance', append=TRUE)
-      if (nrow(clipped_layers$poly)>0)st_write(clipped_layers$poly, dsn=file, layer='areal_disturbance', append=TRUE)
-      if (nrow(clipped_layers$fires)>0)st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
-      if (nrow(clipped_layers$ifl_2000)>0)st_write(clipped_layers$ifl_2000, dsn=file, layer='Intact_FL_2000', append=TRUE)
-      if (nrow(clipped_layers$ifl_2020)>0)st_write(clipped_layers$ifl_2020, dsn=file, layer='Intact_FL_2020', append=TRUE)
-      if (nrow(clipped_layers$pa_2021)>0)st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
-      if (nrow(clipped_layers$fp_500m)>0)st_write(clipped_layers$fp_500m, dsn=file, layer='footprint_500m', append=TRUE)
+      if (nrow(clipped_layers$line)>0) st_write(clipped_layers$line, dsn=file, layer='linear_disturbance', append=TRUE)
+      if (nrow(clipped_layers$poly)>0) st_write(clipped_layers$poly, dsn=file, layer='areal_disturbance', append=TRUE)
+      if (nrow(clipped_layers$fires)>0) st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
+      if (nrow(clipped_layers$ifl_2000)>0) st_write(clipped_layers$ifl_2000, dsn=file, layer='Intact_FL_2000', append=TRUE)
+      if (nrow(clipped_layers$ifl_2020)>0) st_write(clipped_layers$ifl_2020, dsn=file, layer='Intact_FL_2020', append=TRUE)
+      if (nrow(clipped_layers$pa_2021)>0) st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
+      if (nrow(clipped_layers$fp_500m)>0) st_write(clipped_layers$fp_500m, dsn=file, layer='footprint_500m', append=TRUE)
       if (isTRUE(input$prj1 & nrow(clipped_layers$prj1)>0)) st_write(clipped_layers$prj1, dsn=file, layer='Quartz_Claims', append=TRUE)
       if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
       if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
+      
+      req(input$upload_poly)
+      req(input$extraLayers)
+      
+      so_gpkg <- input$upload_poly$datapath
+      for (layer in input$extraLayers) {
+        la <- sf::st_read(so_gpkg, layer, quiet = TRUE) %>% st_transform(3578)
+        st_write(la, dsn=file, layer=layer, append=TRUE)
+      }
     }
   )
   

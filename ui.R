@@ -59,7 +59,8 @@ ui = dashboardPage(skin="black",
                      ),
                      conditionalPanel(
                        condition = "input.tabs == 'select' && input.sourceSA == 'sagpkg'",
-                       div(style = "margin-top: -20px;", selectInput("saLayer", "Select study area layer", choices = NULL,  multiple = FALSE))
+                       div(style = "margin-top: -20px;", selectInput("saLayer", "Select study area layer", choices = NULL,  multiple = FALSE)),
+                       uiOutput("addLayersUI")
                      ),
                      conditionalPanel(
                        condition = "input.tabs == 'data'",
