@@ -30,12 +30,16 @@ output$addLayersUI <- renderUI({
   req(input$saLayer != "Select a layer")
   
   other_layers <- setdiff(rv$gpkg_layers, input$saLayer)
+  if(length(other_layers)>0){
+    checkboxGroupInput(
+      "extraLayers",
+      label = "Select additional layers to include:",
+      choices = other_layers
+    )
+  } else{
+    return(NULL)
+  }
   
-  checkboxGroupInput(
-    "extraLayers",
-    label = "Select additional layers to include:",
-    choices = other_layers
-  )
 })
   ##############################################################################
   # Read input data
@@ -285,13 +289,14 @@ output$addLayersUI <- renderUI({
       if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
       if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
       
-      req(input$upload_poly)
-      req(input$extraLayers)
-      
-      so_gpkg <- input$upload_poly$datapath
-      for (layer in input$extraLayers) {
-        la <- sf::st_read(so_gpkg, layer, quiet = TRUE) %>% st_transform(3578)
-        st_write(la, dsn=file, layer=layer, append=TRUE)
+      if(!is.null(rv$gpkg_layers)){
+        if(!is.null(rv$extraLayers)){
+          so_gpkg <- input$upload_poly$datapath
+          for (layer in input$extraLayers) {
+            la <- sf::st_read(so_gpkg, layer, quiet = TRUE) %>% st_transform(3578)
+            st_write(la, dsn=file, layer=layer, append=TRUE)
+          }
+        }
       }
     }
   )
