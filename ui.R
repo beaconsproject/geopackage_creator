@@ -41,7 +41,7 @@ ui = dashboardPage(skin="black",
                                  menuItem("Welcome", tabName = "overview", icon = icon("th")),
                                  menuItem("Select study area", tabName = "select", icon = icon("arrow-pointer")),
                                  menuItem("Select spatial layers", tabName = "data", icon = icon("arrow-pointer")),
-                                 menuItem("Download geopackage", tabName = "download", icon = icon("th")),
+                                 menuItem("Download GeoPackage", tabName = "download", icon = icon("th")),
                                  hr()
                      ),
                      conditionalPanel(

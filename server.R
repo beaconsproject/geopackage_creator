@@ -31,11 +31,8 @@ output$addLayersUI <- renderUI({
   
   other_layers <- setdiff(rv$gpkg_layers, input$saLayer)
   if(length(other_layers)>0){
-    checkboxGroupInput(
-      "extraLayers",
-      label = "Select additional layers to include:",
-      choices = other_layers
-    )
+    div(style = "margin-left: 20px", h5(strong("OPTIONAL - Select additional layers to include in downloaded GeoPackage:"),
+                                                          checkboxGroupInput("extraLayers", label = "", choices = other_layers)))
   } else{
     return(NULL)
   }
