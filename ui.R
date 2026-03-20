@@ -71,7 +71,7 @@ ui = dashboardPage(skin="black",
                        tags$div(HTML(paste("&nbsp; &nbsp; 2. Select range of fires",
                                            "&nbsp; &nbsp; to include in geopackage.", sep="<br/>")),
                                 style = "font-size:15px; font-weight: bold"),
-                       sliderInput("minmax", label="Range of fires to include:", min=1920, max=2024, value=c(1960, 2024)),
+                       sliderInput("minmax", label="Range of fires to include:", min=1900, max=2024, value=c(1946, 2024)),
                        actionButton("goButton", "Extract selected layers"),
                      ),
                      conditionalPanel(

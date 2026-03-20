@@ -285,7 +285,7 @@ output$addLayersUI <- renderUI({
       if (isTRUE(input$prj1 & nrow(clipped_layers$prj1)>0)) st_write(clipped_layers$prj1, dsn=file, layer='Quartz_Claims', append=TRUE)
       if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
       if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
-      browser()
+      
       if(!is.null(rv$gpkg_layers)){
         if(!is.null(input$extraLayers)){
           so_gpkg <- input$upload_poly$datapath
