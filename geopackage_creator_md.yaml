@@ -1,0 +1,36 @@
+app_name: Geopackage Creator
+
+version: 1.0
+
+purpose: "Create a data package for a study area located within the Yukon and British Columbia."
+
+other:   "Three sources of data are needed to use the app: bp_datasets.gpkg, project.gpkg, and species.gpkg. All layers are projected to the Yukon Albers equal area coordinate reference system (CRS; EPSG:3578)."
+
+inputs:
+   bp_datasets.gpkg:
+    - bnd
+    - fda
+    - fires
+    - footprint_500m
+    - ifl_2000
+    - ifl_2020
+    - protected_areas
+    - sd_line
+    - sd_poly
+    
+   projected.gpkg:
+    - Placer Claims
+    - Quartz Claims
+    
+   species.gpkg:
+    - Caribou Herds
+
+required_columns:
+  fires:
+    - YEAR
+
+outputs:
+  - disturbances-YYYY-mm-dd.gpkg
+
+next_apps:
+  - Disturbance Explorer App
