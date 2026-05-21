@@ -1,7 +1,0 @@
----
-format: md
----
-
-# User guide
-
-
