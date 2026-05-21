@@ -25,11 +25,10 @@ library(markdown)
 
 options(shiny.maxRequestSize=100*1024^2) 
 
-bp <- 'www/bp_datasets.gpkg'
-spp <- 'www/species.gpkg'
-prj <- 'www/projected.gpkg'
-limits <- st_read(bp, 'bnd') %>% st_transform(4326)
 
+bp <- "https://data.beaconsproject.ca/app-data/bp_datasets.gpkg"
+spp <- 'https://data.beaconsproject.ca/app-data/species.gpkg'
+prj <- 'https://data.beaconsproject.ca/app-data/projected.gpkg'
 
 # read_shp_from_upload: read a shapefile from fileInput
 read_shp_from_upload <- function(upload_input) {

@@ -114,12 +114,10 @@ output$addLayersUI <- renderUI({
     clipped_layers$line <- st_read(bp, 'sd_line') %>%
       st_filter(aoi, .predicate = st_intersects)
     
-    clipped_layers$poly <- vect(bp, 'sd_poly') %>%
-      st_as_sf() %>%
+    clipped_layers$poly <- st_read(bp, 'sd_poly') %>%
       st_filter(aoi, .predicate = st_intersects)
     
-    clipped_layers$fires <- vect(bp, 'fires') %>%
-      st_as_sf() %>%
+    clipped_layers$fires <- st_read(bp, 'fires') %>%
       st_cast('MULTIPOLYGON') %>%
       filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) %>%
       st_filter(aoi, .predicate = st_intersects)
@@ -130,7 +128,7 @@ output$addLayersUI <- renderUI({
     clipped_layers$ifl_2000 <- st_read(bp, 'ifl_2000') %>%
       st_intersection(aoi)
 
-        clipped_layers$ifl_2020 <- st_read(bp, 'ifl_2020') %>%
+    clipped_layers$ifl_2020 <- st_read(bp, 'ifl_2020') %>%
       st_intersection(aoi)
     
     clipped_layers$pa_2021 <- st_read(bp, 'protected_areas') %>% 
@@ -138,7 +136,6 @@ output$addLayersUI <- renderUI({
     
     if (input$prj1) {
       clipped_layers$prj1 <- st_read(prj, 'Quartz Claims') %>%
-        filter(TENURE_STATUS == "Active") %>%
         st_filter(st_union(aoi), .predicate = st_intersects)
     } else {
       clipped_layers$prj1 <- NULL
@@ -146,7 +143,6 @@ output$addLayersUI <- renderUI({
     
     if (input$prj2) {
       clipped_layers$prj2 <- st_read(prj, 'Placer Claims') %>%
-        filter(TENURE_STATUS == "Active") %>%
         st_filter(st_union(aoi), .predicate = st_intersects)
     } else {
       clipped_layers$prj2 <- NULL
@@ -179,6 +175,7 @@ output$addLayersUI <- renderUI({
         leafletOutput("map1", height = 600)
       })
       
+      limits <- st_read(bp, 'bnd') %>% st_transform(4326)
       output$map1 <- renderLeaflet({
         m <- leaflet() %>%
           addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
