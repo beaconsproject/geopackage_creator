@@ -63,9 +63,9 @@ output$addLayersUI <- renderUI({
     } else if(input$sourceSA == "sashp"){
       if(!is.null(input$upload_poly)){
         req(input$upload_poly)
-        i <- read_shp_from_upload(input$upload_poly) %>%
-          st_zm(drop = TRUE, what = "ZM")  %>%
-          st_make_valid() %>%
+        i <- read_shp_from_upload(input$upload_poly) |>
+          st_zm(drop = TRUE, what = "ZM")  |>
+          st_make_valid() |>
           dplyr::select(-any_of(c("fid", "FID")))
         
         geom_type <- unique(sf::st_geometry_type(i))
@@ -108,48 +108,58 @@ output$addLayersUI <- renderUI({
       footer = NULL)
     )
     
-    aoi <- bnd() %>% st_transform(3578)
+    aoi <- bnd() |> st_transform(3578)
     
     # ---- run your clipping once ----
-    clipped_layers$line <- st_read(bp, 'sd_line') %>%
-      st_filter(aoi, .predicate = st_intersects)
-    
-    clipped_layers$poly <- st_read(bp, 'sd_poly') %>%
-      st_filter(aoi, .predicate = st_intersects)
-    
-    clipped_layers$fires <- st_read(bp, 'fires') %>%
-      st_cast('MULTIPOLYGON') %>%
-      filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) %>%
-      st_filter(aoi, .predicate = st_intersects)
-    
-    clipped_layers$fp_500m <- st_read(bp, 'footprint_500m') %>%
+    clipped_layers$line <- st_read_parquet(file.path(bp, 'linear_disturbances.parquet')) |>
+      st_filter(aoi) |>
       st_intersection(aoi)
     
-    clipped_layers$ifl_2000 <- st_read(bp, 'ifl_2000') %>%
+    clipped_layers$poly <- st_read_parquet(file.path(bp, 'areal_disturbances.parquet')) |>
+      st_filter(aoi) |>
+      st_intersection(aoi)
+    
+    clipped_layers$fires <- st_read_parquet(file.path(bp, 'fires.parquet')) |>
+      st_cast('MULTIPOLYGON') |>
+      filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) |>
+      st_filter(aoi) |>
+      st_intersection(aoi)
+    
+    clipped_layers$fp_500m <- st_read_parquet(file.path(bp, 'footprint_500m.parquet')) |>
+      st_filter(aoi) |>
+      st_intersection(aoi)
+    
+    clipped_layers$ifl_2000 <- st_read_parquet(file.path(bp, 'intact_fl_2000.parquet')) |>
+      st_filter(aoi) |>
       st_intersection(aoi)
 
-    clipped_layers$ifl_2020 <- st_read(bp, 'ifl_2020') %>%
+    clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'intact_fl_2020.parquet')) |>
+      st_filter(aoi) |>
       st_intersection(aoi)
     
-    clipped_layers$pa_2021 <- st_read(bp, 'protected_areas') %>% 
-      st_filter(aoi, .predicate = st_intersects)
+    clipped_layers$pa_2021 <- st_read_parquet(file.path(bp, 'protected_areas.parquet')) |>
+      st_filter(aoi) |>
+      st_intersection(aoi)
     
     if (input$prj1) {
-      clipped_layers$prj1 <- st_read(prj, 'Quartz Claims') %>%
-        st_filter(st_union(aoi), .predicate = st_intersects)
+      clipped_layers$prj1 <- st_read_parquet(file.path(prj, 'quartz_claims.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
     } else {
       clipped_layers$prj1 <- NULL
     }
     
     if (input$prj2) {
-      clipped_layers$prj2 <- st_read(prj, 'Placer Claims') %>%
-        st_filter(st_union(aoi), .predicate = st_intersects)
+      clipped_layers$prj2 <- st_read_parquet(file.path(prj, 'placers_claims.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
     } else {
       clipped_layers$prj2 <- NULL
     }
     if (input$spp1) {
-      clipped_layers$spp1 <- st_read(spp, 'Caribou Herds') %>%
-        st_filter(st_union(aoi), .predicate = st_intersects)
+      clipped_layers$spp1 <- st_read_parquet(file.path(spp, 'caribou_herds.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
     } else {
       clipped_layers$spp1 <- NULL
     }
@@ -175,50 +185,47 @@ output$addLayersUI <- renderUI({
         leafletOutput("map1", height = 600)
       })
       
-      limits <- st_read(bp, 'bnd') %>% st_transform(4326)
       output$map1 <- renderLeaflet({
-        m <- leaflet() %>%
-          addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") %>%
-          addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") %>%
-          addPolygons(data=limits, color='black', fill=F, weight=1, group="Database limits") %>%
+        m <- leaflet() |>
+          addProviderTiles("Esri.WorldImagery", group="Esri.WorldImagery") |>
+          addProviderTiles("Esri.WorldTopoMap", group="Esri.WorldTopoMap") |>
+          addPolygons(data=limits, color='black', fill=F, weight=1, group="Database limits") |>
           addLayersControl(position = "topright",
                            baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
                            overlayGroups = c("Database limits"),
-                           options = layersControlOptions(collapsed = FALSE)) %>%
+                           options = layersControlOptions(collapsed = FALSE)) |>
           hideGroup(c(""))
         
         if(!is.null(bnd())) {
-          region <- bnd() %>% st_transform(4326)
-          map_bounds <- region %>% st_bbox() %>% as.character()
+          region <- bnd() |> st_transform(4326)
+          map_bounds <- region |> st_bbox() |> as.character()
           
-          m <- m %>%
-            fitBounds(map_bounds[1], map_bounds[2], map_bounds[3], map_bounds[4]) %>%
-            addPolygons(data=region, color='blue', fill=F, weight=2, group="Study area") %>%
+          m <- m |>
+            fitBounds(map_bounds[1], map_bounds[2], map_bounds[3], map_bounds[4]) |>
+            addPolygons(data=region, color='blue', fill=F, weight=2, group="Study area") |>
             addLayersControl(position = "topright",
                              baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
                              overlayGroups = c("Database limits", "Study area"),
-                             options = layersControlOptions(collapsed = FALSE)) %>%
+                             options = layersControlOptions(collapsed = FALSE)) |>
             hideGroup(c(""))
         } 
         
-        #if(input$goButton >0){ 
         if(r$goButton == 1){
+  
+          sd_line <- clipped_layers$line |> st_transform(4326)
+          sd_poly <- clipped_layers$poly |> st_transform(4326)
+          fires <- clipped_layers$fires |>  st_transform(4326)
+          ifl_2000 <- clipped_layers$ifl_2000 |> st_transform(4326)
+          ifl_2020 <- clipped_layers$ifl_2020 |> st_transform(4326)
+          pa_2021 <- clipped_layers$pa_2021 |> st_transform(4326)
+          fp_500m <- clipped_layers$fp_500m |> st_transform(4326)
           
-          aoi <- bnd() %>% st_transform(3578)
-          sd_line <- clipped_layers$line %>% st_transform(4326)
-          sd_poly <- clipped_layers$poly %>% st_transform(4326)
-          fires <- clipped_layers$fires %>%  st_transform(4326)
-          ifl_2000 <- clipped_layers$ifl_2000 %>% st_transform(4326)
-          ifl_2020 <- clipped_layers$ifl_2020 %>% st_transform(4326)
-          pa_2021 <- clipped_layers$pa_2021 %>% st_transform(4326)
-          fp_500m <- clipped_layers$fp_500m %>% st_transform(4326)
-          
-          m <- m %>%
-            addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") %>%
-            addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") %>%
-            addPolygons(data=fires, fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') %>%
-            addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intact FL 2000") %>%
-            addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intact FL 2020") %>%
+          m <- m |>
+            addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") |>
+            addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") |>
+            addPolygons(data=fires, fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') |>
+            addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intact FL 2000") |>
+            addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intact FL 2020") |>
             addPolygons(data=fp_500m, fill=T, stroke=F, fillColor='#663399', fillOpacity=0.5, group="Footprint 500m")
           
           grps <- NULL
@@ -228,26 +235,26 @@ output$addLayersUI <- renderUI({
           tspp1 <- isolate(input$spp1)
           
           if (tprj1 & length(clipped_layers$prj1)>0) { 
-            prj1 <- clipped_layers$prj1 %>% st_transform(4326)
-            m <- m %>% addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz Claims")
-            grps <- c(grps,"Quartz Claims")
+            prj1 <- clipped_layers$prj1 |> st_transform(4326)
+            m <- m |> addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz claims")
+            grps <- c(grps,"Quartz claims")
           }
           if (tprj2 & length(clipped_layers$prj2)>0) {
-            prj2 <- clipped_layers$prj2 %>% st_transform(4326)
-            m <- m %>% addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer Claims")
-            grps <- c(grps,"Placer Claims")
+            prj2 <- clipped_layers$prj2 |> st_transform(4326)
+            m <- m |> addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer claims")
+            grps <- c(grps,"Placer claims")
           }
           if (tspp1 & length(clipped_layers$spp1)>0) {
-            spp1 <- clipped_layers$spp1 %>% st_transform(4326)
-            m <- m %>% addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
+            spp1 <- clipped_layers$spp1 |> st_transform(4326)
+            m <- m |> addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
             grps <- c(grps,"Caribou Herds")
           }
           
-          m <- m %>% #addLayersControl(position = "topright",
+          m <- m |> #addLayersControl(position = "topright",
             addLayersControl(position = "topright",
                              baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
                              overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intact FL 2000", "Intact FL 2020", "Footprint 500m", "Protected areas", grps),
-                             options = layersControlOptions(collapsed = FALSE)) %>%
+                             options = layersControlOptions(collapsed = FALSE)) |>
             hideGroup(c("Database limits", "Intact FL 2000", "Intact FL 2020", "Protected areas", "Footprint 500m", grps))
         }
         m
@@ -270,25 +277,25 @@ output$addLayersUI <- renderUI({
       showModal(modalDialog("Downloading...", footer=NULL))
       on.exit(removeModal())
       
-      sa <- bnd() %>% st_transform(3578)
+      sa <- bnd() |> st_transform(3578)
       st_write(sa, dsn=file, layer='studyarea')
-      if (nrow(clipped_layers$line)>0) st_write(clipped_layers$line, dsn=file, layer='linear_disturbance', append=TRUE)
-      if (nrow(clipped_layers$poly)>0) st_write(clipped_layers$poly, dsn=file, layer='areal_disturbance', append=TRUE)
-      if (nrow(clipped_layers$fires)>0) st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
-      if (nrow(clipped_layers$ifl_2000)>0) st_write(clipped_layers$ifl_2000, dsn=file, layer='Intact_FL_2000', append=TRUE)
-      if (nrow(clipped_layers$ifl_2020)>0) st_write(clipped_layers$ifl_2020, dsn=file, layer='Intact_FL_2020', append=TRUE)
-      if (nrow(clipped_layers$pa_2021)>0) st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
-      if (nrow(clipped_layers$fp_500m)>0) st_write(clipped_layers$fp_500m, dsn=file, layer='footprint_500m', append=TRUE)
-      if (isTRUE(input$prj1 & nrow(clipped_layers$prj1)>0)) st_write(clipped_layers$prj1, dsn=file, layer='Quartz_Claims', append=TRUE)
-      if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='Placer_Claims', append=TRUE)
-      if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='Caribou_Herds', append=TRUE)
+      if (nrow(clipped_layers$line)>0) st_write(clipped_layers$line, dsn=file, layer='linear_disturbances', append=TRUE)
+      if (nrow(clipped_layers$poly)>0) st_write(clipped_layers$poly, dsn=file, layer='areal_disturbances', append=TRUE)
+      if (isTRUE(input$bp4 & nrow(clipped_layers$fires)>0)) st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
+      if (isTRUE(input$bp5 & nrow(clipped_layers$ifl_2000)>0)) st_write(clipped_layers$ifl_2000, dsn=file, layer='intact_fl_2000', append=TRUE)
+      if (isTRUE(input$bp6 & nrow(clipped_layers$ifl_2020)>0)) st_write(clipped_layers$ifl_2020, dsn=file, layer='intact_fl_2020', append=TRUE)
+      if (isTRUE(input$bp7 & nrow(clipped_layers$pa_2021)>0)) st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
+      if (isTRUE(input$fp & nrow(clipped_layers$fp_500m)>0)) st_write(clipped_layers$fp_500m, dsn=file, layer='footprint_500m', append=TRUE)
+      if (isTRUE(input$prj1 & nrow(clipped_layers$prj1)>0)) st_write(clipped_layers$prj1, dsn=file, layer='quartz_claims', append=TRUE)
+      if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='placer_claims', append=TRUE)
+      if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='caribou_herds', append=TRUE)
       
       if(!is.null(rv$gpkg_layers)){
         if(!is.null(input$extraLayers)){
           so_gpkg <- input$upload_poly$datapath
           
           for (layer in input$extraLayers) {
-            la <- sf::st_read(so_gpkg, layer = layer, quiet = TRUE) %>%
+            la <- sf::st_read(so_gpkg, layer = layer, quiet = TRUE) |>
               st_transform(3578)
             
             st_write(la, dsn = file, layer = layer, append = TRUE)

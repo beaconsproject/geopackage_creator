@@ -6,6 +6,8 @@ purpose: "Create a data package for a study area located within the Yukon and Br
 
 other:   "Three sources of data are needed to use the app: bp_datasets.gpkg, project.gpkg, and species.gpkg. All layers are projected to the Yukon Albers equal area coordinate reference system (CRS; EPSG:3578)."
 
+access: "https://beaconsproject.shinyapps.io/geopackage_creator/"
+
 inputs:
    bp_datasets.gpkg:
     - bnd
@@ -26,11 +28,37 @@ inputs:
     - Caribou Herds
 
 required_columns:
+  sd_line:
+    TYPE_INDUSTRY:
+      used_by:
+        - Disturbance Explorer
+      format: character
+      description: "Used to classify industry type in the demo dataset"
+    TYPE_DISTURBANCE:
+      used_by:
+        - Disturbance Explorer
+      format: character
+      description: "Used to classify disturbance type in the demo dataset"
+  sd_poly:
+    TYPE_INDUSTRY:
+      used_by:
+        - Disturbance Explorer
+      description: "Used to classify industry type in the demo dataset"
+    TYPE_DISTURBANCE:
+      used_by:
+        - Disturbance Explorer
+      description: "Used to classify disturbance type in the demo dataset"
   fires:
-    - YEAR
+    YEAR:
+      used_by:
+        - Disturbance Explorer
+      format:
+      description: "Used to filter fires by year range"
 
 outputs:
   - disturbances-YYYY-mm-dd.gpkg
 
 next_apps:
   - Disturbance Explorer App
+  - Hydrology Explorer App
+  - Caribou CE Explorer App

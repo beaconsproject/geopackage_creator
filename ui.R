@@ -89,7 +89,6 @@ ui = dashboardPage(skin="black",
                                  column(width = 8,  # Adjusted from 6 to 8 for better alignment
                                         tabBox(id = "landing", width = 12,
                                                tabPanel("Overview", includeMarkdown("docs/overview.md")),
-                                               tabPanel("User Guide"),
                                                tabPanel("Dataset Requirements", includeMarkdown("docs/datasets.md"))
                                         )
                                  ),
@@ -125,20 +124,20 @@ ui = dashboardPage(skin="black",
                                    tabBox(
                                    id = "two", width="4",
                                    tabPanel("Select Layers", 
-                                            strong("Required"),
+                                            strong("Core layers"),
                                             disabled(checkboxInput('bp1', label='Study area', value=T)),
                                             disabled(checkboxInput('bp2', label='Linear disturbances', value=T)),
                                             disabled(checkboxInput('bp3', label='Areal disturbances', value=T)),
-                                            disabled(checkboxInput('bp4', label='Fires', value=T)),
-                                            disabled(checkboxInput('bp5', label='Intact FL 2000', value=T)),
-                                            disabled(checkboxInput('bp6', label='Intact FL 2020', value=T)),
-                                            disabled(checkboxInput('bp7', label='Protected areas', value=T)),
-                                            disabled(checkboxInput('fp', label='Footprint 500m', value=T)),
-                                            strong("Optional - projected"),
-                                            checkboxInput('prj1', label='Quartz Claims', value=F),
-                                            checkboxInput('prj2', label='Placer Claims', value=F),
-                                            strong("Optional - miscellaneous"),
-                                            checkboxInput('spp1', label='Caribou Herds', value=F))
+                                            checkboxInput('bp4', label='Fires', value=T),
+                                            checkboxInput('bp5', label='Intact FL 2000', value=T),
+                                            checkboxInput('bp6', label='Intact FL 2020', value=T),
+                                            checkboxInput('bp7', label='Protected areas', value=T),
+                                            checkboxInput('fp', label='Footprint 500m', value=T),
+                                            strong("Optional - Mining layers"),
+                                            checkboxInput('prj1', label='Quartz claims', value=F),
+                                            checkboxInput('prj2', label='Placer claims', value=F),
+                                            strong("Optional - Additional layers"),
+                                            checkboxInput('spp1', label='Caribou herds', value=F))
                                  )
                                )
                                )
