@@ -14,18 +14,18 @@ inputs:
     - fda
     - fires
     - footprint_500m
-    - ifl_2000
-    - ifl_2020
+    - intact_fl_2000
+    - intact_fl_2020
     - protected_areas
-    - sd_line
-    - sd_poly
+    - linear_disturbances
+    - areal_disturbances
     
    projected.gpkg:
-    - Placer Claims
-    - Quartz Claims
+    - placer_claims
+    - quartz_claims
     
    species.gpkg:
-    - Caribou Herds
+    - caribou_herds
 
 required_columns:
   sd_line:
@@ -43,17 +43,29 @@ required_columns:
     TYPE_INDUSTRY:
       used_by:
         - Disturbance Explorer
+      format: character
       description: "Used to classify industry type in the demo dataset"
     TYPE_DISTURBANCE:
       used_by:
         - Disturbance Explorer
+      format: character
       description: "Used to classify disturbance type in the demo dataset"
   fires:
     YEAR:
       used_by:
         - Disturbance Explorer
-      format:
+      format: integer
       description: "Used to filter fires by year range"
+    CAUSE:
+      used_by:
+        - Disturbance Explorer
+      format: character
+      allow_null: true
+      expected_values:
+        - Human
+        - Natural
+        - Undetermined
+      description: "Used by leaflet to map fires. Expected values are : Human, Natural, Undetermined"
 
 outputs:
   - disturbances-YYYY-mm-dd.gpkg
@@ -62,3 +74,4 @@ next_apps:
   - Disturbance Explorer App
   - Hydrology Explorer App
   - Caribou CE Explorer App
+  

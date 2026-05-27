@@ -119,28 +119,33 @@ output$addLayersUI <- renderUI({
       st_filter(aoi) |>
       st_intersection(aoi)
     
-    clipped_layers$fires <- st_read_parquet(file.path(bp, 'fires.parquet')) |>
-      st_cast('MULTIPOLYGON') |>
-      filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) |>
-      st_filter(aoi) |>
-      st_intersection(aoi)
-    
-    clipped_layers$fp_500m <- st_read_parquet(file.path(bp, 'footprint_500m.parquet')) |>
-      st_filter(aoi) |>
-      st_intersection(aoi)
-    
-    clipped_layers$ifl_2000 <- st_read_parquet(file.path(bp, 'intact_fl_2000.parquet')) |>
-      st_filter(aoi) |>
-      st_intersection(aoi)
-
-    clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'intact_fl_2020.parquet')) |>
-      st_filter(aoi) |>
-      st_intersection(aoi)
-    
-    clipped_layers$pa_2021 <- st_read_parquet(file.path(bp, 'protected_areas.parquet')) |>
-      st_filter(aoi) |>
-      st_intersection(aoi)
-    
+    if (isTRUE(input$bp4)){
+      clipped_layers$fires <- st_read_parquet(file.path(bp, 'fires.parquet')) |>
+        st_cast('MULTIPOLYGON') |>
+        filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
+    }
+    if (isTRUE(input$fp)){
+      clipped_layers$fp_500m <- st_read_parquet(file.path(bp, 'footprint_500m.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
+    }
+    if (isTRUE(input$bp5)){
+      clipped_layers$ifl_2000 <- st_read_parquet(file.path(bp, 'intact_fl_2000.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
+    }
+    if (isTRUE(input$bp6)){
+      clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'intact_fl_2020.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
+    }
+    if (isTRUE(input$bp7)){
+      clipped_layers$pa_2021 <- st_read_parquet(file.path(bp, 'protected_areas.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
+    }
     if (input$prj1) {
       clipped_layers$prj1 <- st_read_parquet(file.path(prj, 'quartz_claims.parquet')) |>
         st_filter(aoi) |>
@@ -150,7 +155,7 @@ output$addLayersUI <- renderUI({
     }
     
     if (input$prj2) {
-      clipped_layers$prj2 <- st_read_parquet(file.path(prj, 'placers_claims.parquet')) |>
+      clipped_layers$prj2 <- st_read_parquet(file.path(prj, 'placer_claims.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     } else {
@@ -214,40 +219,61 @@ output$addLayersUI <- renderUI({
   
           sd_line <- clipped_layers$line |> st_transform(4326)
           sd_poly <- clipped_layers$poly |> st_transform(4326)
-          fires <- clipped_layers$fires |>  st_transform(4326)
-          ifl_2000 <- clipped_layers$ifl_2000 |> st_transform(4326)
-          ifl_2020 <- clipped_layers$ifl_2020 |> st_transform(4326)
-          pa_2021 <- clipped_layers$pa_2021 |> st_transform(4326)
-          fp_500m <- clipped_layers$fp_500m |> st_transform(4326)
           
           m <- m |>
             addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") |>
-            addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances") |>
-            addPolygons(data=fires, fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires') |>
-            addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#99CC99', fillOpacity=0.5, group="Intact FL 2000") |>
-            addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#669966', fillOpacity=0.5, group="Intact FL 2020") |>
-            addPolygons(data=fp_500m, fill=T, stroke=F, fillColor='#663399', fillOpacity=0.5, group="Footprint 500m")
-          
+            addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances")
+            
           grps <- NULL
           #Isolate allow to wait the trigger goButton to be pushed before looking into Optionals
+          tbp4 <- isolate(input$bp4)
+          tbp5 <- isolate(input$bp5)
+          tbp6 <- isolate(input$bp6)
+          tbp7 <- isolate(input$bp7)
+          tfp <- isolate(input$fp)
           tprj1 <- isolate(input$prj1)
           tprj2 <- isolate(input$prj2)
           tspp1 <- isolate(input$spp1)
           
+          if (tbp4 & length(clipped_layers$fires)>0) { 
+            fires <- clipped_layers$fires |>  st_transform(4326)
+            m <- m |> addPolygons(data=fires, fill=T, stroke=F, fillColor='orange', fillOpacity=0.5, group='Fires')
+            grps <- c(grps,"Fires")
+          } 
+          if (tbp5 & length(clipped_layers$ifl_2000)>0) { 
+            ifl_2000 <- clipped_layers$ifl_2000 |> st_transform(4326)
+            m <- m |> addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#3366FF', fillOpacity=0.5, group="Intact FL 2000")
+            grps <- c(grps,"Intact FL 2000")
+          } 
+          if (tbp6 & length(clipped_layers$ifl_2020)>0) { 
+            ifl_2020 <- clipped_layers$ifl_2020 |> st_transform(4326)
+            m <- m |> addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#000066', fillOpacity=0.5, group="Intact FL 2020") 
+            grps <- c(grps,"Intact FL 2020")
+          } 
+          if (tbp7 & length(clipped_layers$pa_2021)>0) { 
+            pa_2021 <- clipped_layers$pa_2021 |> st_transform(4326)
+            m <- m |> addPolygons(data=pa_2021, fill=T, stroke=F, fillColor='#699999', fillOpacity=0.5, group="Protected areas") 
+            grps <- c(grps,"Protected areas")
+          } 
+          if (tfp & length(clipped_layers$fp_500m)>0) { 
+            fp_500m <- clipped_layers$fp_500m |> st_transform(4326)
+            m <- m |> addPolygons(data=fp_500m, fill=T, stroke=F, fillColor='#663399', fillOpacity=0.5, group="Footprint 500m")
+            grps <- c(grps,"Footprint 500m")
+          } 
           if (tprj1 & length(clipped_layers$prj1)>0) { 
             prj1 <- clipped_layers$prj1 |> st_transform(4326)
-            m <- m |> addPolygons(data=prj1, color='red', fill=T, weight=1, group="Quartz claims")
+            m <- m |> addPolygons(data=prj1, color='#999999', fill=T, weight=1, group="Quartz claims")
             grps <- c(grps,"Quartz claims")
           }
           if (tprj2 & length(clipped_layers$prj2)>0) {
             prj2 <- clipped_layers$prj2 |> st_transform(4326)
-            m <- m |> addPolygons(data=prj2, color='red', fill=T, weight=1, group="Placer claims")
+            m <- m |> addPolygons(data=prj2, color='#333333', fill=T, weight=1, group="Placer claims")
             grps <- c(grps,"Placer claims")
           }
           if (tspp1 & length(clipped_layers$spp1)>0) {
             spp1 <- clipped_layers$spp1 |> st_transform(4326)
-            m <- m |> addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou Herds")
-            grps <- c(grps,"Caribou Herds")
+            m <- m |> addPolygons(data=spp1, color='red', fill=T, weight=1, group="Caribou herds")
+            grps <- c(grps,"Caribou herds")
           }
           
           m <- m |> #addLayersControl(position = "topright",

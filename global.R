@@ -25,12 +25,11 @@ library(markdown)
 library(sfarrow)
 
 options(shiny.maxRequestSize=100*1024^2) 
-options(timeout = 600) 
+options(timeout = 1500) 
 
 bp <- "https://data.beaconsproject.ca/app-data/bp_datasets"
 spp <- 'https://data.beaconsproject.ca/app-data/species'
 prj <- 'https://data.beaconsproject.ca/app-data/projected'
-
 limits <- st_read_parquet('https://data.beaconsproject.ca/app-data/bp_datasets/limit_4326.parquet')
 
 # read_shp_from_upload: read a shapefile from fileInput
