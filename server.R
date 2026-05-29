@@ -1,10 +1,21 @@
 server = function(input, output, session) {
 
   rv <- reactiveValues(gpkg_layers = NULL)
+  clipped_layers <- reactiveValues()
   
   ################################################################################################
   # RELOAD
   observeEvent(input$reload_btn, {
+    isolate({
+      rv$gpkg_layers <- NULL
+      # Clear all elements in clipped_layers
+      lapply(names(reactiveValuesToList(clipped_layers)), function(nm) {
+        clipped_layers[[nm]] <- NULL
+      })
+    })
+    
+    gc()
+    
     session$reload()
   })
   
@@ -42,7 +53,8 @@ output$addLayersUI <- renderUI({
   # Read input data
   ##############################################################################
   r <- reactiveValues(goButton = 0,
-                      switch_tab =0)
+                      switch_tab =0,
+                      display_map = 0)
   
   ##############################################################################
   # Uploaded data
@@ -95,31 +107,56 @@ output$addLayersUI <- renderUI({
     r$goButton <- 1
   })
   
-  # storage for clipped layers
-  clipped_layers <- reactiveValues()
-  
   observeEvent(input$goButton, {
     req(bnd())
     
-    # show pop-up ...
-    showModal(modalDialog(
-      title = "Extracting layers. Please wait...",
-      easyClose = TRUE,
-      footer = NULL)
+    showModal(
+      modalDialog(
+        div(
+          style = "text-align:center; padding:30px;",
+          tags$h3("Clipping layers..."),
+          tags$div(
+            id = "progress_text",
+            "Starting..."
+          )
+        ),
+        footer = NULL,
+        easyClose = FALSE
+      )
     )
     
     aoi <- bnd() |> st_transform(3578)
     
+    n <- sum(
+      isTRUE(input$bp1),
+      isTRUE(input$bp2),
+      isTRUE(input$bp3),
+      isTRUE(input$bp4),
+      isTRUE(input$fp),
+      isTRUE(input$bp5),
+      isTRUE(input$bp6),
+      isTRUE(input$bp7),
+      isTRUE(input$prj1),
+      isTRUE(input$prj2),
+      isTRUE(input$spp1)
+    ) 
+    
     # ---- run your clipping once ----
+    update_progress(1, n, "Loading line disturbances data...")
+    
     clipped_layers$line <- st_read_parquet(file.path(bp, 'linear_disturbances.parquet')) |>
       st_filter(aoi) |>
       st_intersection(aoi)
     
+    update_progress(2, n, "Loading areal disturbances data...")
     clipped_layers$poly <- st_read_parquet(file.path(bp, 'areal_disturbances.parquet')) |>
       st_filter(aoi) |>
       st_intersection(aoi)
     
+    i <-2
     if (isTRUE(input$bp4)){
+      i <-i+1
+      update_progress(i, n, "Loading fires data")
       clipped_layers$fires <- st_read_parquet(file.path(bp, 'fires.parquet')) |>
         st_cast('MULTIPOLYGON') |>
         filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) |>
@@ -127,34 +164,43 @@ output$addLayersUI <- renderUI({
         st_intersection(aoi)
     }
     if (isTRUE(input$fp)){
+      i <-i+1
+      update_progress(i, n, "Loading footprint 500m data")
       clipped_layers$fp_500m <- st_read_parquet(file.path(bp, 'footprint_500m.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
     if (isTRUE(input$bp5)){
+      i <-i+1
+      update_progress(i, n, "Loading intact fl 2000 data...")
       clipped_layers$ifl_2000 <- st_read_parquet(file.path(bp, 'intact_fl_2000.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
     if (isTRUE(input$bp6)){
+      i <-i+1
+      update_progress(i, n, "Loading intact fl 2020 data...")
       clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'intact_fl_2020.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
     if (isTRUE(input$bp7)){
+      i <-i+1
+      update_progress(i, n, "Loading protecetd areas data...")
       clipped_layers$pa_2021 <- st_read_parquet(file.path(bp, 'protected_areas.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
     if (input$prj1) {
+      i <-i+1
+      update_progress(i, n, "Loading intact fl 2000 data...")
       clipped_layers$prj1 <- st_read_parquet(file.path(prj, 'quartz_claims.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
-    } else {
-      clipped_layers$prj1 <- NULL
-    }
-    
+    } 
     if (input$prj2) {
+      i <-i+1
+      update_progress(i, n, "Loading placer claims data...")
       clipped_layers$prj2 <- st_read_parquet(file.path(prj, 'placer_claims.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
@@ -162,14 +208,18 @@ output$addLayersUI <- renderUI({
       clipped_layers$prj2 <- NULL
     }
     if (input$spp1) {
+      i <-i+1
+      update_progress(i, n, "Loading caribou herds data...")
       clipped_layers$spp1 <- st_read_parquet(file.path(spp, 'caribou_herds.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     } else {
       clipped_layers$spp1 <- NULL
     }
-    r$switch_tab <- 1
+     
     removeModal()
+    r$switch_tab <- 1
+    r$display_map <- 1
   })
  
   ##############################################################################
@@ -184,7 +234,7 @@ output$addLayersUI <- renderUI({
   ##############################################################################
   # View initial set of maps
   ##############################################################################
-  observe({
+  observeEvent(isTRUE(r$switch_tab ==1), {
     if (isTRUE(input$enable_map)) {
       output$mapUI <- renderUI({
         leafletOutput("map1", height = 600)
@@ -216,15 +266,19 @@ output$addLayersUI <- renderUI({
         } 
         
         if(r$goButton == 1){
-  
-          sd_line <- clipped_layers$line |> st_transform(4326)
-          sd_poly <- clipped_layers$poly |> st_transform(4326)
+          grps <- NULL 
           
-          m <- m |>
-            addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances") |>
-            addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances")
-            
-          grps <- NULL
+          if (length(clipped_layers$line)>0) { 
+            sd_line <- clipped_layers$line |>  st_transform(4326)
+            m <- m |> addPolylines(data=sd_line, color='red', weight=2, group="Linear disturbances")
+            grps <- c(grps,"Linear disturbances")
+          } 
+          if (length(clipped_layers$poly)>0) { 
+            sd_poly <- clipped_layers$poly |>  st_transform(4326)
+            m <- m |> addPolygons(data=sd_poly, fill=T, stroke=F, fillColor='red', fillOpacity=0.5, group="Areal disturbances")
+            grps <- c(grps,"Areal disturbances")
+          } 
+          
           #Isolate allow to wait the trigger goButton to be pushed before looking into Optionals
           tbp4 <- isolate(input$bp4)
           tbp5 <- isolate(input$bp5)
@@ -279,9 +333,9 @@ output$addLayersUI <- renderUI({
           m <- m |> #addLayersControl(position = "topright",
             addLayersControl(position = "topright",
                              baseGroups=c("Esri.WorldTopoMap", "Esri.WorldImagery"),
-                             overlayGroups = c("Database limits","Study area", "Linear disturbances", "Areal disturbances", "Fires","Intact FL 2000", "Intact FL 2020", "Footprint 500m", "Protected areas", grps),
+                             overlayGroups = c("Database limits","Study area", grps),
                              options = layersControlOptions(collapsed = FALSE)) |>
-            hideGroup(c("Database limits", "Intact FL 2000", "Intact FL 2020", "Protected areas", "Footprint 500m", grps))
+            hideGroup(c("Database limits"))
         }
         m
       })

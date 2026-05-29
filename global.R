@@ -30,7 +30,15 @@ options(timeout = 1500)
 bp <- "https://data.beaconsproject.ca/app-data/bp_datasets"
 spp <- 'https://data.beaconsproject.ca/app-data/species'
 prj <- 'https://data.beaconsproject.ca/app-data/projected'
+
 limits <- st_read_parquet('https://data.beaconsproject.ca/app-data/bp_datasets/limit_4326.parquet')
+
+update_progress <- function(i, n, msg) {
+  runjs(sprintf(
+    "document.getElementById('progress_text').innerText = 'Step %d / %d - %s'",
+    i, n, msg
+  ))
+}
 
 # read_shp_from_upload: read a shapefile from fileInput
 read_shp_from_upload <- function(upload_input) {
