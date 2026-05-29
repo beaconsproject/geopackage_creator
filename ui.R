@@ -88,7 +88,7 @@ ui = dashboardPage(skin="black",
                                fluidRow(
                                  column(width = 8,  # Adjusted from 6 to 8 for better alignment
                                         tabBox(id = "landing", width = 12,
-                                               tabPanel("Overview", includeMarkdown("docs/overview.md")),
+                                               tabPanel("Overview", htmlOutput("overviewMD")),
                                                tabPanel("Dataset Requirements", includeMarkdown("docs/datasets.md"))
                                         )
                                  ),
@@ -129,6 +129,14 @@ ui = dashboardPage(skin="black",
                                             disabled(checkboxInput('bp2', label='Linear disturbances', value=T)),
                                             disabled(checkboxInput('bp3', label='Areal disturbances', value=T)),
                                             checkboxInput('bp4', label='Fires', value=T),
+                                            conditionalPanel(
+                                              condition = "input.bp4 == true",
+                                              radioButtons("scFires", span(style = "font-weight: normal;", "Select data source for fires"),
+                                                           choices = list("NRCAN National Burned Area Composite" = "nbac", 
+                                                                          "NRCAN National Fire Databse - Perimeters" = "nfdb"),
+                                                           selected = "nbac", 
+                                                           inline = FALSE)
+                                            ),
                                             checkboxInput('bp5', label='Intact FL 2000', value=T),
                                             checkboxInput('bp6', label='Intact FL 2020', value=T),
                                             checkboxInput('bp7', label='Protected areas', value=T),

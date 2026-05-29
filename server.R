@@ -1,5 +1,9 @@
 server = function(input, output, session) {
 
+  output$overviewMD <- renderUI({
+    HTML(markdown::markdownToHTML(text = overview_md_text, fragment.only = TRUE))
+  })
+  
   rv <- reactiveValues(gpkg_layers = NULL)
   clipped_layers <- reactiveValues()
   
@@ -7,6 +11,18 @@ server = function(input, output, session) {
   # RELOAD
   observeEvent(input$reload_btn, {
     isolate({
+      leafletProxy("map1") %>%
+        clearGroup("Linear disturbances") %>%
+        clearGroup("Areal disturbances") %>%
+        clearGroup("Fires") %>%
+        clearGroup("Intact FL 2000") %>%
+        clearGroup("Intact FL 2020") %>%
+        clearGroup("Placer claims") %>%
+        clearGroup("Quartz claims") %>%
+        clearGroup("Protected areas") %>%
+        clearGroup("Caribou herds") %>%
+        clearGroup("Footprint 500m")
+      
       rv$gpkg_layers <- NULL
       # Clear all elements in clipped_layers
       lapply(names(reactiveValuesToList(clipped_layers)), function(nm) {
@@ -128,7 +144,6 @@ output$addLayersUI <- renderUI({
     aoi <- bnd() |> st_transform(3578)
     
     n <- sum(
-      isTRUE(input$bp1),
       isTRUE(input$bp2),
       isTRUE(input$bp3),
       isTRUE(input$bp4),
@@ -142,7 +157,7 @@ output$addLayersUI <- renderUI({
     ) 
     
     # ---- run your clipping once ----
-    update_progress(1, n, "Loading line disturbances data...")
+    update_progress(1, n, "Loading linear disturbances data...")
     
     clipped_layers$line <- st_read_parquet(file.path(bp, 'linear_disturbances.parquet')) |>
       st_filter(aoi) |>
@@ -157,7 +172,12 @@ output$addLayersUI <- renderUI({
     if (isTRUE(input$bp4)){
       i <-i+1
       update_progress(i, n, "Loading fires data")
-      clipped_layers$fires <- st_read_parquet(file.path(bp, 'fires.parquet')) |>
+      if(input$scFires =="nbac"){
+        li <- "fires_nbac.parquet"
+      }else{
+        li <- "fires_nfdb.parquet"
+      }
+      clipped_layers$fires <- st_read_parquet(file.path(bp, li)) |>
         st_cast('MULTIPOLYGON') |>
         filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) |>
         st_filter(aoi) |>
@@ -186,14 +206,14 @@ output$addLayersUI <- renderUI({
     }
     if (isTRUE(input$bp7)){
       i <-i+1
-      update_progress(i, n, "Loading protecetd areas data...")
+      update_progress(i, n, "Loading protected areas data...")
       clipped_layers$pa_2021 <- st_read_parquet(file.path(bp, 'protected_areas.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
     if (input$prj1) {
       i <-i+1
-      update_progress(i, n, "Loading intact fl 2000 data...")
+      update_progress(i, n, "Loading quartz claims data...")
       clipped_layers$prj1 <- st_read_parquet(file.path(prj, 'quartz_claims.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)

@@ -24,6 +24,20 @@ library(shinyjs)
 library(markdown)
 library(sfarrow)
 
+# Define the last update date (git last commit)
+app_version_date <- as.Date(readLines("app_version.txt"))
+
+# Read the Markdown file
+overview_md <- readLines("docs/overview.md")
+
+# Replace placeholder in the Markdown
+overview_md <- c(
+  paste0('<div style="text-align: right; font-size:0.9em; color: gray;">Last update: ', app_version_date, '</div>'),
+  overview_md
+)
+
+# Convert to a single string for rendering
+overview_md_text <- paste(overview_md, collapse = "\n")
 options(shiny.maxRequestSize=100*1024^2) 
 options(timeout = 1500) 
 
