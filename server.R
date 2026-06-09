@@ -37,6 +37,26 @@ server = function(input, output, session) {
   
   ################################################################################################
   ################################################################################################
+  # Observe on tabs
+  ################################################################################################
+  # Observe tab changes
+  observeEvent(input$tabs, {
+    if (input$tabs != "select" && is.null(r$aoi) && input$tabs != "overview") {
+      # Show modal message if tabUpload has not been visited
+      showModal(modalDialog(
+        title = "Action Required",
+        "Please upload a study area prior to select layers to extract.",
+        easyClose = TRUE,
+        footer = modalButton("Go to Select study area")
+      ))
+      
+      # Redirect user back to tabUpload
+      updateTabItems(session = getDefaultReactiveDomain(), "tabs", "select")
+    }
+  })
+  
+  ################################################################################################
+  ################################################################################################
   # Observe on selectInput
   ################################################################################################
   observe({
@@ -70,7 +90,8 @@ output$addLayersUI <- renderUI({
   ##############################################################################
   r <- reactiveValues(goButton = 0,
                       switch_tab =0,
-                      display_map = 0)
+                      display_map = 0,
+                      aoi = NULL)
   
   ##############################################################################
   # Uploaded data
@@ -99,10 +120,6 @@ output$addLayersUI <- renderUI({
         geom_type <- unique(sf::st_geometry_type(i))
         if (any(geom_type %in% c("POLYGON", "MULTIPOLYGON"))) {
           i <- suppressWarnings(sf::st_cast(i, "MULTIPOLYGON"))
-        } else if (any(geom_type %in% c("LINESTRING", "MULTILINESTRING"))) {
-          i <- suppressWarnings(sf::st_cast(i, "MULTILINESTRING"))
-        } else if (any(geom_type %in% c("POINT", "MULTIPOINT"))) {
-          i <- suppressWarnings(sf::st_cast(i, "POINT"))
         }
       }
     } else if (input$sourceSA == "sagpkg"){
@@ -113,6 +130,21 @@ output$addLayersUI <- renderUI({
         i <- NULL
       }
     } 
+    ext <- st_read_parquet(file.path(bp, 'bnd.parquet'))
+    i <- st_transform(i, 3578)
+    
+    if (!any(st_intersects(i, ext, sparse = FALSE))) {
+      
+      showModal(modalDialog(
+        title = "Uploaded polygon is outside the supported area",
+        "The uploaded study area falls outside the geographic extent covered by this application. Please upload a study area located within the supported region.",
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+      return(NULL)
+    }
+    
+    r$aoi <- i
     return(i)
   })
   
@@ -141,7 +173,7 @@ output$addLayersUI <- renderUI({
       )
     )
     
-    aoi <- bnd() |> st_transform(3578)
+    aoi <- bnd()
     
     n <- sum(
       isTRUE(input$bp2),
@@ -211,6 +243,7 @@ output$addLayersUI <- renderUI({
         st_filter(aoi) |>
         st_intersection(aoi)
     }
+    
     if (input$prj1) {
       i <-i+1
       update_progress(i, n, "Loading quartz claims data...")
