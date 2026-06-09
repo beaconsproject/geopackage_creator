@@ -21,7 +21,8 @@ server = function(input, output, session) {
         clearGroup("Quartz claims") %>%
         clearGroup("Protected areas") %>%
         clearGroup("Caribou herds") %>%
-        clearGroup("Footprint 500m")
+        clearGroup("Footprint 500m") %>%
+        clearGroup("Undisturbed areas 500m")
       
       rv$gpkg_layers <- NULL
       # Clear all elements in clipped_layers
@@ -179,7 +180,8 @@ output$addLayersUI <- renderUI({
       isTRUE(input$bp2),
       isTRUE(input$bp3),
       isTRUE(input$bp4),
-      isTRUE(input$fp),
+      isTRUE(input$fp1),
+      isTRUE(input$fp2),
       isTRUE(input$bp5),
       isTRUE(input$bp6),
       isTRUE(input$bp7),
@@ -215,10 +217,17 @@ output$addLayersUI <- renderUI({
         st_filter(aoi) |>
         st_intersection(aoi)
     }
-    if (isTRUE(input$fp)){
+    if (isTRUE(input$fp1)){
       i <-i+1
       update_progress(i, n, "Loading footprint 500m data")
-      clipped_layers$fp_500m <- st_read_parquet(file.path(bp, 'footprint_500m.parquet')) |>
+      clipped_layers$fp1_500m <- st_read_parquet(file.path(bp, 'footprint_500m.parquet')) |>
+        st_filter(aoi) |>
+        st_intersection(aoi)
+    }
+    if (isTRUE(input$fp2)){
+      i <-i+1
+      update_progress(i, n, "Loading undisturbed areas 500m data")
+      clipped_layers$fp2_500m <- st_read_parquet(file.path(bp, 'undisturbed_areas_500m.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
@@ -337,7 +346,8 @@ output$addLayersUI <- renderUI({
           tbp5 <- isolate(input$bp5)
           tbp6 <- isolate(input$bp6)
           tbp7 <- isolate(input$bp7)
-          tfp <- isolate(input$fp)
+          tfp1 <- isolate(input$fp1)
+          tfp2 <- isolate(input$fp2)
           tprj1 <- isolate(input$prj1)
           tprj2 <- isolate(input$prj2)
           tspp1 <- isolate(input$spp1)
@@ -362,10 +372,15 @@ output$addLayersUI <- renderUI({
             m <- m |> addPolygons(data=pa_2021, fill=T, stroke=F, fillColor='#699999', fillOpacity=0.5, group="Protected areas") 
             grps <- c(grps,"Protected areas")
           } 
-          if (tfp & length(clipped_layers$fp_500m)>0) { 
-            fp_500m <- clipped_layers$fp_500m |> st_transform(4326)
-            m <- m |> addPolygons(data=fp_500m, fill=T, stroke=F, fillColor='#663399', fillOpacity=0.5, group="Footprint 500m")
+          if (tfp1 & length(clipped_layers$fp1_500m)>0) { 
+            fp1_500m <- clipped_layers$fp1_500m |> st_transform(4326)
+            m <- m |> addPolygons(data=fp1_500m, fill=T, stroke=F, fillColor='#663399', fillOpacity=0.5, group="Footprint 500m")
             grps <- c(grps,"Footprint 500m")
+          } 
+          if (tfp2 & length(clipped_layers$fp2_500m)>0) { 
+            fp2_500m <- clipped_layers$fp2_500m |> st_transform(4326)
+            m <- m |> addPolygons(data=fp2_500m, fill=T, stroke=F, fillColor='#006600', fillOpacity=0.7, group="Undisturbed areas 500m")
+            grps <- c(grps,"Undisturbed areas 500m")
           } 
           if (tprj1 & length(clipped_layers$prj1)>0) { 
             prj1 <- clipped_layers$prj1 |> st_transform(4326)
@@ -418,7 +433,8 @@ output$addLayersUI <- renderUI({
       if (isTRUE(input$bp5 & nrow(clipped_layers$ifl_2000)>0)) st_write(clipped_layers$ifl_2000, dsn=file, layer='intact_fl_2000', append=TRUE)
       if (isTRUE(input$bp6 & nrow(clipped_layers$ifl_2020)>0)) st_write(clipped_layers$ifl_2020, dsn=file, layer='intact_fl_2020', append=TRUE)
       if (isTRUE(input$bp7 & nrow(clipped_layers$pa_2021)>0)) st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
-      if (isTRUE(input$fp & nrow(clipped_layers$fp_500m)>0)) st_write(clipped_layers$fp_500m, dsn=file, layer='footprint_500m', append=TRUE)
+      if (isTRUE(input$fp1 & nrow(clipped_layers$fp1_500m)>0)) st_write(clipped_layers$fp1_500m, dsn=file, layer='footprint_500m', append=TRUE)
+      if (isTRUE(input$fp2 & nrow(clipped_layers$fp2_500m)>0)) st_write(clipped_layers$fp2_500m, dsn=file, layer='undisturbed_areas_500m', append=TRUE)
       if (isTRUE(input$prj1 & nrow(clipped_layers$prj1)>0)) st_write(clipped_layers$prj1, dsn=file, layer='quartz_claims', append=TRUE)
       if (isTRUE(input$prj2 & nrow(clipped_layers$prj2)>0)) st_write(clipped_layers$prj2, dsn=file, layer='placer_claims', append=TRUE)
       if (isTRUE(input$spp1 & nrow(clipped_layers$spp1)>0)) st_write(clipped_layers$spp1, dsn=file, layer='caribou_herds', append=TRUE)
