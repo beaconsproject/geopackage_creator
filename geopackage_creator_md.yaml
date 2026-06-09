@@ -14,12 +14,13 @@ inputs:
     - fda
     - fires
     - footprint_500m
+    - undisturbed_areas_500m
     - intact_fl_2000
     - intact_fl_2020
     - protected_areas
     - linear_disturbances
     - areal_disturbances
-    
+
    projected.gpkg:
     - placer_claims
     - quartz_claims
@@ -27,34 +28,46 @@ inputs:
    species.gpkg:
     - caribou_herds
 
+optional:
+
 required_columns:
-  sd_line:
+  linear_disturbances:
     TYPE_INDUSTRY:
       used_by:
         - Disturbance Explorer
       format: character
+      allow_null: true
+      expected_values:
       description: "Used to classify industry type in the demo dataset"
     TYPE_DISTURBANCE:
       used_by:
         - Disturbance Explorer
       format: character
+      allow_null: true
+      expected_values:
       description: "Used to classify disturbance type in the demo dataset"
-  sd_poly:
+  areal_disturbances:
     TYPE_INDUSTRY:
       used_by:
         - Disturbance Explorer
       format: character
+      allow_null: true
+      expected_values:
       description: "Used to classify industry type in the demo dataset"
     TYPE_DISTURBANCE:
       used_by:
         - Disturbance Explorer
       format: character
+      allow_null: true
+      expected_values:
       description: "Used to classify disturbance type in the demo dataset"
   fires:
     YEAR:
       used_by:
         - Disturbance Explorer
       format: integer
+      allow_null: false
+      expected_values:
       description: "Used to filter fires by year range"
     CAUSE:
       used_by:
@@ -65,7 +78,7 @@ required_columns:
         - Human
         - Natural
         - Undetermined
-      description: "Used by leaflet to map fires. Expected values are : Human, Natural, Undetermined"
+      description: "Used by leaflet to map fires."
 
 outputs:
   - disturbances-YYYY-mm-dd.gpkg
