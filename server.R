@@ -16,7 +16,7 @@ server = function(input, output, session) {
         clearGroup("Areal disturbances") %>%
         clearGroup("Fires") %>%
         clearGroup("Intact FL 2000") %>%
-        clearGroup("Intact FL 2020") %>%
+        clearGroup("Intact FL 2025") %>%
         clearGroup("Placer claims") %>%
         clearGroup("Quartz claims") %>%
         clearGroup("Protected areas") %>%
@@ -61,9 +61,9 @@ server = function(input, output, session) {
   # Observe on selectInput
   ################################################################################################
   observe({
-    req(input$upload_poly)
+    req(input$upload_sa)
     req(input$sourceSA == 'sagpkg')
-    file <- input$upload_poly$datapath
+    file <- input$upload_sa$datapath
     layers <- st_layers(file)$name
     rv$gpkg_layers <- layers
     
@@ -98,7 +98,7 @@ output$addLayersUI <- renderUI({
   # Uploaded data
   ##############################################################################
   bnd <- reactive({
-    if (is.null(input$upload_poly)) {
+    if (is.null(input$upload_sa)) {
       return(NULL)  
     }
     
@@ -111,9 +111,9 @@ output$addLayersUI <- renderUI({
       ))
       i <- NULL
     } else if(input$sourceSA == "sashp"){
-      if(!is.null(input$upload_poly)){
-        req(input$upload_poly)
-        i <- read_shp_from_upload(input$upload_poly) |>
+      if(!is.null(input$upload_sa)){
+        req(input$upload_sa)
+        i <- read_shp_from_upload(input$upload_sa) |>
           st_zm(drop = TRUE, what = "ZM")  |>
           st_make_valid() |>
           dplyr::select(-any_of(c("fid", "FID")))
@@ -124,13 +124,14 @@ output$addLayersUI <- renderUI({
         }
       }
     } else if (input$sourceSA == "sagpkg"){
-      req(input$upload_poly)
+      req(input$upload_sa)
       if(input$saLayer != "Select a layer" && input$saLayer != ""){
-        i <- st_read(input$upload_poly$datapath, layer = input$saLayer, quiet = TRUE) 
+        i <- st_read(input$upload_sa$datapath, layer = input$saLayer, quiet = TRUE) 
       }else{
         i <- NULL
       }
     } 
+    req(!is.null(i))
     ext <- st_read_parquet(file.path(bp, 'bnd.parquet'))
     i <- st_transform(i, 3578)
     
@@ -149,7 +150,7 @@ output$addLayersUI <- renderUI({
     return(i)
   })
   
-  observeEvent(input$upload_poly, {
+  observeEvent(input$upload_sa, {
     r$goButton <- 0
   })
   observeEvent(input$goButton, {
@@ -206,11 +207,12 @@ output$addLayersUI <- renderUI({
     if (isTRUE(input$bp4)){
       i <-i+1
       update_progress(i, n, "Loading fires data")
-      if(input$scFires =="nbac"){
-        li <- "fires_nbac.parquet"
-      }else{
-        li <- "fires_nfdb.parquet"
-      }
+      #if(input$scFires =="nbac"){
+      #  li <- "fires_nbac.parquet"
+      #}else{
+      #  li <- "fires_nfdb.parquet"
+      #}
+      li <- "fires.parquet"
       clipped_layers$fires <- st_read_parquet(file.path(bp, li)) |>
         st_cast('MULTIPOLYGON') |>
         filter(YEAR >= input$minmax[1], YEAR <= input$minmax[2]) |>
@@ -234,14 +236,14 @@ output$addLayersUI <- renderUI({
     if (isTRUE(input$bp5)){
       i <-i+1
       update_progress(i, n, "Loading intact fl 2000 data...")
-      clipped_layers$ifl_2000 <- st_read_parquet(file.path(bp, 'intact_fl_2000.parquet')) |>
+      clipped_layers$ifl_2000 <- st_read_parquet(file.path(bp, 'ifl_2000.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
     if (isTRUE(input$bp6)){
       i <-i+1
-      update_progress(i, n, "Loading intact fl 2020 data...")
-      clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'intact_fl_2020.parquet')) |>
+      update_progress(i, n, "Loading Intact FL 2025 data...")
+      clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'ifl_2025.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
@@ -364,8 +366,8 @@ output$addLayersUI <- renderUI({
           } 
           if (tbp6 & length(clipped_layers$ifl_2020)>0) { 
             ifl_2020 <- clipped_layers$ifl_2020 |> st_transform(4326)
-            m <- m |> addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#000066', fillOpacity=0.5, group="Intact FL 2020") 
-            grps <- c(grps,"Intact FL 2020")
+            m <- m |> addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#000066', fillOpacity=0.5, group="Intact FL 2025") 
+            grps <- c(grps,"Intact FL 2025")
           } 
           if (tbp7 & length(clipped_layers$pa_2021)>0) { 
             pa_2021 <- clipped_layers$pa_2021 |> st_transform(4326)
@@ -441,7 +443,7 @@ output$addLayersUI <- renderUI({
       
       if(!is.null(rv$gpkg_layers)){
         if(!is.null(input$extraLayers)){
-          so_gpkg <- input$upload_poly$datapath
+          so_gpkg <- input$upload_sa$datapath
           
           for (layer in input$extraLayers) {
             la <- sf::st_read(so_gpkg, layer = layer, quiet = TRUE) |>
