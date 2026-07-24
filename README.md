@@ -10,7 +10,7 @@ Because of the dependency on a large input dataset (bp_datasets.gpkg), the app c
 2. Start R and install the following additional packages:
 
 ```r
-install.packages(c("sf","terra","leaflet","tidyverse","shinydashboard","shinycssloaders","shinyjs","markdown","shinyMatrix"))
+install.packages(c("sf","leaflet","tidyverse","shinydashboard","shinycssloaders","shinyjs","markdown","shinyMatrix"))
 ```
 
 3. Download the Geopackage Creator app from GitHub

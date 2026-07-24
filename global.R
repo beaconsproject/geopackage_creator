@@ -1,21 +1,21 @@
-required_packages <- c("sf", "terra", "tidyverse", "leaflet", "shinydashboard", "shinycssloaders",
-                       "shinyjs", "markdown", "shiny"
-)
+#required_packages <- c("sf", "terra", "tidyverse", "leaflet", "shinydashboard", "shinycssloaders",
+#                       "shinyjs", "markdown", "shiny"
+#)
 
 options(shiny.maxRequestSize=500*1024^2) 
 
 # Install missing packages
-missing_packages <- setdiff(required_packages, rownames(installed.packages()))
-if (length(missing_packages) > 0) {
-  install.packages(missing_packages)
-}
+#missing_packages <- setdiff(required_packages, rownames(installed.packages()))
+#if (length(missing_packages) > 0) {
+#  install.packages(missing_packages)
+#}
 
 # Load the packages
 #invisible(lapply(required_packages, library, character.only = TRUE))
 
 library(shiny)
 library(sf)
-library(terra)
+#library(terra)
 library(leaflet)
 library(tidyverse)
 library(shinydashboard)

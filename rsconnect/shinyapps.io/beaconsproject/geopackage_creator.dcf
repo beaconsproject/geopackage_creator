@@ -1,0 +1,10 @@
+name: geopackage_creator
+title:
+username: beaconsproject
+account: beaconsproject
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10405546
+bundleId: 12315950
+url: https://beaconsproject.shinyapps.io/geopackage_creator/
+version: 1
