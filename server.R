@@ -243,7 +243,7 @@ output$addLayersUI <- renderUI({
     if (isTRUE(input$bp6)){
       i <-i+1
       update_progress(i, n, "Loading Intact FL 2025 data...")
-      clipped_layers$ifl_2020 <- st_read_parquet(file.path(bp, 'ifl_2025.parquet')) |>
+      clipped_layers$ifl_2025 <- st_read_parquet(file.path(bp, 'ifl_2025.parquet')) |>
         st_filter(aoi) |>
         st_intersection(aoi)
     }
@@ -364,9 +364,9 @@ output$addLayersUI <- renderUI({
             m <- m |> addPolygons(data=ifl_2000, fill=T, stroke=F, fillColor='#3366FF', fillOpacity=0.5, group="Intact FL 2000")
             grps <- c(grps,"Intact FL 2000")
           } 
-          if (tbp6 & length(clipped_layers$ifl_2020)>0) { 
-            ifl_2020 <- clipped_layers$ifl_2020 |> st_transform(4326)
-            m <- m |> addPolygons(data=ifl_2020, fill=T, stroke=F, fillColor='#000066', fillOpacity=0.5, group="Intact FL 2025") 
+          if (tbp6 & length(clipped_layers$ifl_2025)>0) { 
+            ifl_2025 <- clipped_layers$ifl_2025 |> st_transform(4326)
+            m <- m |> addPolygons(data=ifl_2025, fill=T, stroke=F, fillColor='#000066', fillOpacity=0.5, group="Intact FL 2025") 
             grps <- c(grps,"Intact FL 2025")
           } 
           if (tbp7 & length(clipped_layers$pa_2021)>0) { 
@@ -433,7 +433,7 @@ output$addLayersUI <- renderUI({
       if (nrow(clipped_layers$poly)>0) st_write(clipped_layers$poly, dsn=file, layer='areal_disturbances', append=TRUE)
       if (isTRUE(input$bp4 & nrow(clipped_layers$fires)>0)) st_write(clipped_layers$fires, dsn=file, layer='fires', append=TRUE)
       if (isTRUE(input$bp5 & nrow(clipped_layers$ifl_2000)>0)) st_write(clipped_layers$ifl_2000, dsn=file, layer='intact_fl_2000', append=TRUE)
-      if (isTRUE(input$bp6 & nrow(clipped_layers$ifl_2020)>0)) st_write(clipped_layers$ifl_2020, dsn=file, layer='intact_fl_2020', append=TRUE)
+      if (isTRUE(input$bp6 & nrow(clipped_layers$ifl_2025)>0)) st_write(clipped_layers$ifl_2025, dsn=file, layer='intact_fl_2025', append=TRUE)
       if (isTRUE(input$bp7 & nrow(clipped_layers$pa_2021)>0)) st_write(clipped_layers$pa_2021, dsn=file, layer='protected_areas', append=TRUE)
       if (isTRUE(input$fp1 & nrow(clipped_layers$fp1_500m)>0)) st_write(clipped_layers$fp1_500m, dsn=file, layer='footprint_500m', append=TRUE)
       if (isTRUE(input$fp2 & nrow(clipped_layers$fp2_500m)>0)) st_write(clipped_layers$fp2_500m, dsn=file, layer='undisturbed_areas_500m', append=TRUE)

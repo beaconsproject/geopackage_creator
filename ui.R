@@ -138,7 +138,7 @@ ui = dashboardPage(skin="black",
                                             #               inline = FALSE)
                                             #),
                                             checkboxInput('bp5', label='Intact FL 2000', value=T),
-                                            checkboxInput('bp6', label='Intact FL 2020', value=T),
+                                            checkboxInput('bp6', label='Intact FL 2025', value=T),
                                             checkboxInput('bp7', label='Protected areas', value=T),
                                             checkboxInput('fp1', label='Footprint 500m', value=T),
                                             checkboxInput('fp2', label='Undisturbed areas 500m', value=T),
